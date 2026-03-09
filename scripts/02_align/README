@@ -1,0 +1,16 @@
+The full 02_align execution order:
+Step 1 - align:
+    bash scripts/02_align/run_mafft.sh --threads 8
+Step 2 - entropy (optionally with baselines):
+    python scripts/02_align/entropy.py
+    python scripts/02_align/entropy.py \
+        --baseline-conserved data/external/rplA_aligned.fasta \
+        --baseline-divergent data/external/membrane_transporter_aligned.fasta
+
+A few design notes worth knowing:
+run_mafft.sh uses --auto mode - MAFFT automatically picks L-INS-i for small datasets and FFT-NS-2 for large ones.
+With ~2,600 Class I and ~10,000 Class II sequences, both will use FFT-NS-2. Skip flag prevents re-running completed alignments.
+entropy.py maps the known catalytic residues (Cys105/224/318 for Class I, His188/Ser318/Lys324/Glu331 for Class II)
+directly onto the alignment columns, so the per-position CSV will flag them as is_functional_site=True
+- ready for Figure 5 coloring downstream.
+The --baseline-conserved/divergent flags are for the ANOVA comparison.

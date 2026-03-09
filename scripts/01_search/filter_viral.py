@@ -1,5 +1,5 @@
 """
-filter_viral.py — Remove viral proteomes from the UniProt reference proteome list.
+filter_viral.py - Remove viral proteomes from the UniProt reference proteome list.
 
 Downloads (or reads locally) the full UniProt reference proteome metadata and
 removes any entry whose taxonomic lineage includes "Viruses". Writes a clean

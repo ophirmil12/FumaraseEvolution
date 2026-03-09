@@ -1,5 +1,5 @@
 """
-extract_sequences.py — Validate and register the final representative FASTA files.
+extract_sequences.py - Validate and register the final representative FASTA files.
 
 At this point in the pipeline the representative sequences have already been
 produced by MMseqs2 and filtered. This script:

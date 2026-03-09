@@ -1,5 +1,5 @@
 """
-filter_hits.py — Filter MMseqs2 .m8 hits and merge into a single JSON file.
+filter_hits.py - Filter MMseqs2 .m8 hits and merge into a single JSON file.
 
 Applies thresholds from config.py (e-value, identity, coverage) across all
 .m8 files in data/raw/m8s/, cross-references organism metadata, and writes

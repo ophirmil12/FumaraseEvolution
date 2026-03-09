@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-#  mmseq_run.sh — Download proteome FASTAs and run MMseqs2 easy-search
+#  mmseq_run.sh - Download proteome FASTAs and run MMseqs2 easy-search
 #
 #  Usage:
 #    bash mmseq_run.sh <tsv_file> <query_fasta> [--jobs N]
@@ -83,7 +83,7 @@ process_proteome() {
 
   # Skip if .m8 already exists (allows safe re-runs)
   if [[ -f "$m8_file" ]]; then
-    echo "[SKIP] $proteome_id — .m8 already exists."
+    echo "[SKIP] $proteome_id - .m8 already exists."
     return 0
   fi
 
@@ -97,7 +97,7 @@ process_proteome() {
 
   # Sanity-check: non-empty FASTA
   if [[ ! -s "$fasta_file" ]]; then
-    echo "[WARN] Empty FASTA for $proteome_id — skipping MMseqs."
+    echo "[WARN] Empty FASTA for $proteome_id - skipping MMseqs."
     return 1
   fi
 

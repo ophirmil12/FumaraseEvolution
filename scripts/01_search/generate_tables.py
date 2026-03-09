@@ -1,5 +1,5 @@
 """
-generate_tables.py — Produce Table 1 (Class I) and Table 2 (Class II).
+generate_tables.py - Produce Table 1 (Class I) and Table 2 (Class II).
 
 Inputs:
   - proteome_metadata.tsv  (UniProt reference proteomes with Taxonomic lineage)
@@ -15,8 +15,8 @@ Taxonomic groups:
   All, Bacteria, Archaea, Fungi, Animals, Plants, Protozoal, Algae,
   Alphaproteobacteria, SAR
 
-NOTE — Group overlaps:
-  Alphaproteobacteria is a subclass of Bacteria — proteomes in this group
+NOTE - Group overlaps:
+  Alphaproteobacteria is a subclass of Bacteria - proteomes in this group
   are counted in BOTH the "Bacteria" row and the "Alphaproteobacteria" row.
   Similarly, SAR is a subset of Eukaryota and overlaps with "Algae".
 
@@ -216,7 +216,7 @@ def main():
     log.info(f"Table 1 → {out1}")
     log.info(f"Table 2 → {out2}")
 
-    for label, tbl in [("Table 1 — Class I", table1), ("Table 2 — Class II", table2)]:
+    for label, tbl in [("Table 1 - Class I", table1), ("Table 2 - Class II", table2)]:
         print(f"\n{label}")
         print(tbl.to_string(index=False))
 
