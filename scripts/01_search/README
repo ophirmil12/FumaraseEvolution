@@ -3,6 +3,10 @@ This part results in three files:
 - class2_sequences.fasta: contains the sequences of the hits that are classified as class 2
 - proteomes_filtered.tsv == proteomes_metadata.tsv with the viral proteomes removed
 
+And in two tables:
+- table1_class1.csv: contains the statistics of the hits that are classified as class 1
+- table1_class2.csv: contains the statistics of the hits that are classified as class 2
+
 Running process:
 
 filter_viral.py          → data/processed/proteomes_filtered.tsv
@@ -13,3 +17,6 @@ filter_hits.py           → data/processed/filtered_hits.json
                                     ↓
 extract_sequences.py     → data/processed/class1_sequences.fasta
                            data/processed/class2_sequences.fasta
+                                    ↓
+generate_tables.py       → results/stats/table1_class1.csv
+                           results/stats/table1_class2.csv
