@@ -1,3 +1,11 @@
+#  If you don't have conda, install Miniconda first [make sure to choose Python 3.11, and
+#       install into folder with much free storage]:
+#    https://docs.conda.io/en/latest/miniconda.html
+#
+#  Then create the project environment:
+#    conda env create -f envs/environment.yml
+#    conda activate fumaraseevo
+
 name: fumaraseevo
 channels:
   - conda-forge
