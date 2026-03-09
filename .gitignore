@@ -1,0 +1,28 @@
+# Data - too large for git; see Suplemantery Information
+data/
+data/raw/
+data/processed/
+data/external/
+
+# IQ-TREE checkpoint files
+*.ckp.gz
+*.bkl
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.venv/
+
+# R
+.Rhistory
+.RData
+*.Rproj.user/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Conda
+envs/
