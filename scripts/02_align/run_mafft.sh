@@ -20,15 +20,15 @@
 # =============================================================================
 #
 #  INSTALLATION - MAFFT
-#  ─────────────────────
+#  ---------------------
 #
 #  Option 1: Conda (recommended - manages all bioinformatics dependencies)
-#  ────────────────────────────────────────────────────────────────────────
+#  ------------------------------------------------------------------------
 #  If you don't have conda, install Miniconda first:
 #    https://docs.conda.io/en/latest/miniconda.html
 #
 #  Then create the project environment (first time only):
-#    conda env create fumaraseevo
+#    conda env create -f envs/environment.yml
 #    conda activate fumaraseevo
 #
 #  To add MAFFT to an existing environment:
@@ -39,19 +39,19 @@
 #    mafft --version
 #
 #  Option 2: Homebrew (macOS)
-#  ──────────────────────────
+#  --------------------------
 #    brew install mafft
 #
 #  Option 3: apt (Ubuntu/Debian)
-#  ─────────────────────────────
+#  -----------------------------
 #    sudo apt update && sudo apt install mafft
 #
 #  Option 4: Manual download
-#  ─────────────────────────
+#  -------------------------
 #    https://mafft.cbrc.jp/alignment/software/
 #
 #  Option 5: HPC cluster (HUJI-CSE)
-#  ─────────────────────────────────
+#  ---------------------------------
 #    module load mafft        # check available: module avail mafft
 #    # or use the conda env (preferred):
 #    conda activate fumaraseevo
@@ -154,7 +154,7 @@ run_alignment() {
 
   local n_aligned
   n_aligned=$(grep -c "^>" "$output_fasta")
-  echo "[DONE] $class_label: $n_aligned sequences aligned → $output_fasta"
+  echo "[DONE] $class_label: $n_aligned sequences aligned -> $output_fasta"
   echo "       Log: $log_file"
 }
 

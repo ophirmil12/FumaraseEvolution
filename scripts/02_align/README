@@ -11,6 +11,10 @@ A few design notes worth knowing:
 run_mafft.sh uses --auto mode - MAFFT automatically picks L-INS-i for small datasets and FFT-NS-2 for large ones.
 With ~2,600 Class I and ~10,000 Class II sequences, both will use FFT-NS-2. Skip flag prevents re-running completed alignments.
 entropy.py maps the known catalytic residues (Cys105/224/318 for Class I, His188/Ser318/Lys324/Glu331 for Class II)
-directly onto the alignment columns, so the per-position CSV will flag them as is_functional_site=True
+directly onto the alignment columns using the E. coli UniProt ID (P0AC33/P05042) from config.py QUERIES
+to locate the reference sequence, so the per-position CSV will flag them as is_functional_site=True
 - ready for Figure 5 coloring downstream.
 The --baseline-conserved/divergent flags are for the ANOVA comparison.
+Baseline sequences can be fetched from UniProt:
+  RplA (conserved):   https://rest.uniprot.org/uniprotkb/stream?query=gene:rplA+AND+reviewed:true&format=fasta
+  MFS transporter (divergent): https://rest.uniprot.org/uniprotkb/stream?query=family:"major+facilitator+superfamily"+AND+reviewed:true&format=fasta&size=500

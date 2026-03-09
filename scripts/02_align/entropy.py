@@ -11,6 +11,12 @@ Scale: 0 (perfect conservation) to ~4.32 bits (log2(20), maximum variability).
 Also computes baseline entropy for a ribosomal protein (highly conserved) and
 a membrane transporter (highly divergent) for context, if provided.
 
+# RplA (conserved) - reviewed Swiss-Prot bacteria:
+https://rest.uniprot.org/uniprotkb/stream?query=gene:rplA+AND+reviewed:true&format=fasta
+
+# MFS transporter (divergent):
+https://rest.uniprot.org/uniprotkb/stream?query=family:"major+facilitator+superfamily"+AND+reviewed:true&format=fasta&size=500
+
 Usage:
     # Both classes (default paths from config):
     python scripts/02_align/entropy.py
@@ -152,28 +158,33 @@ FUNCTIONAL_SITES = {
 }
 
 
-def map_sites_to_alignment(sequences: list[str],
-                           ref_header_fragment: str,
+def map_sites_to_alignment(headers: list[str],
+                           sequences: list[str],
+                           uniprot_id: str,
                            residue_positions: list[int]) -> list[int]:
     """
-    Find the reference sequence in the alignment and map ungapped residue
-    positions to alignment column indices.
+    Locate the E. coli reference sequence in the alignment by its UniProt ID
+    (as defined in config.py QUERIES) and map ungapped residue positions to
+    alignment column indices.
 
     Returns list of alignment column indices (one per functional site).
-    Returns empty list if reference sequence is not found.
+    Returns empty list if the reference sequence is not found.
     """
     ref_seq = None
-    for seq in sequences:
-        # Heuristic: reference sequence has fewest gaps
-        if seq.count("-") < len(seq) * 0.05:
+    for header, seq in zip(headers, sequences):
+        if uniprot_id in header:
             ref_seq = seq
+            log.info(f"  Reference sequence found: {header[:80]}")
             break
 
     if ref_seq is None:
-        log.warning("Could not identify reference sequence for site mapping.")
+        log.warning(
+            f"E. coli reference {uniprot_id} not found in alignment headers. "
+            "Ensure the reference FASTA was included in the input sequences."
+        )
         return []
 
-    # Build map: ungapped position → alignment column
+    # Build map: ungapped position -> alignment column
     ungapped_to_col = {}
     ungapped_pos = 0
     for col_idx, aa in enumerate(ref_seq):
@@ -220,8 +231,10 @@ def process_alignment(fasta_path: Path,
     site_col_indices = []
     if class_key and class_key in FUNCTIONAL_SITES:
         sites = FUNCTIONAL_SITES[class_key]
+        # Reference UniProt ID comes from config.py QUERIES
+        uniprot_id = QUERIES[class_key]["uniprot_id"]
         site_col_indices = map_sites_to_alignment(
-            sequences, sites["name"], sites["residues"]
+            headers, sequences, uniprot_id, sites["residues"]
         )
         df["is_functional_site"] = df.index.isin(site_col_indices)
 
@@ -311,13 +324,13 @@ def main():
         safe_label = label.lower().replace(" ", "_").replace("(", "").replace(")", "")
         out_path = args.outdir / f"entropy_{safe_label}.csv"
         df_pos.to_csv(out_path, index=False)
-        log.info(f"  Per-position scores → {out_path}")
+        log.info(f"  Per-position scores -> {out_path}")
 
     # Write summary
     df_summary = pd.DataFrame(summaries)
     summary_path = args.outdir / "entropy_summary.csv"
     df_summary.to_csv(summary_path, index=False)
-    log.info(f"\nSummary → {summary_path}")
+    log.info(f"\nSummary -> {summary_path}")
 
     print("\n" + df_summary.to_string(index=False))
 
