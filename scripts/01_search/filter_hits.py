@@ -92,10 +92,33 @@ def load_metadata(metadata_path: Path) -> pd.DataFrame:
 
 
 def parse_m8(m8_path: Path) -> pd.DataFrame:
-    """Read a single .m8 file into a DataFrame. Returns empty DF if file is empty."""
+    """
+    Read a single .m8 file into a DataFrame. Returns empty DF if file is empty.
+
+    Handles two variants produced by the search pipeline:
+      - 12 columns: standard BLAST tabular (no header)
+      - 13 columns: adds Query_Length as col 13 (silently ignored)
+    Both variants may optionally include a text header row starting with
+    "Query_ID", which is automatically skipped.
+    Identity values may be in 0-1 or 0-100 scale; both are handled downstream.
+    """
     if m8_path.stat().st_size == 0:
         return pd.DataFrame(columns=M8_COLS)
-    return pd.read_csv(m8_path, sep="\t", header=None, names=M8_COLS)
+
+    # Detect optional header row
+    with open(m8_path) as fh:
+        first = fh.readline()
+    skip = 1 if first.lower().startswith("query_id") or first.lower().startswith("query\t") else 0
+
+    # Read file; accept 12 or 13 columns (13th = Query_Length, ignored).
+    # Let pandas infer the column count, then rename the first 12.
+    df = pd.read_csv(
+        m8_path, sep="\t", header=None,
+        skiprows=skip,
+    )
+    df = df.iloc[:, :len(M8_COLS)]   # keep first 12 cols, drop any extra
+    df.columns = M8_COLS
+    return df
 
 
 def compute_coverage(df: pd.DataFrame, query_length: int) -> pd.Series:
@@ -106,7 +129,10 @@ def compute_coverage(df: pd.DataFrame, query_length: int) -> pd.Series:
 def apply_filters(df: pd.DataFrame, query_length: int) -> pd.DataFrame:
     """Apply e-value, identity, and coverage filters from config."""
     df = df.copy()
-    df["identity"] = df["identity"] / 100.0          # MMseqs2 outputs 0–100
+    # Identity may be 0-1 or 0-100 depending on MMseqs2 output format.
+    # Normalise to 0-1 only if values appear to be in 0-100 scale.
+    if df["identity"].max() > 1.0:
+        df["identity"] = df["identity"] / 100.0
     df["coverage"] = compute_coverage(df, query_length)
 
     before = len(df)
@@ -116,7 +142,7 @@ def apply_filters(df: pd.DataFrame, query_length: int) -> pd.DataFrame:
         (df["coverage"] >= MMSEQS2["coverage_cutoff"])
     ]
     after = len(df)
-    log.info(f"  Filter: {before} → {after} hits "
+    log.info(f"  Filter: {before} -> {after} hits "
              f"(removed {before - after})")
     return df
 
@@ -207,7 +233,7 @@ def process_class(fumarase_class: int, metadata: pd.DataFrame) -> list[dict]:
 
     log.info(
         f"Class {fumarase_class} summary: "
-        f"{total_raw} raw hits → {len(all_hits)} passing hits "
+        f"{total_raw} raw hits -> {len(all_hits)} passing hits "
         f"across {len(hits_by_proteome)} proteomes"
     )
     return all_hits
@@ -252,7 +278,7 @@ def main():
     with open(args.out, "w") as f:
         json.dump(all_hits, f, indent=2)
 
-    log.info(f"Written {len(all_hits)} total hits → {args.out}")
+    log.info(f"Written {len(all_hits)} total hits -> {args.out}")
 
 
 if __name__ == "__main__":

@@ -79,10 +79,14 @@ def parse_fasta(path: Path) -> list[dict]:
 
                 m = HEADER_RE.match(line)
                 if not m:
-                    raise ValueError(
-                        f"Unexpected header format at line {lineno}:\n  {line}\n"
-                        f"Expected: >PROTEOME_ID|db|UNIPROT_ID|GENE_NAME ..."
+                    # UPI-only headers (e.g. >UP000216052|UPI00087F1206 status=active)
+                    # have no UniProt accession. Skip with a warning.
+                    # Run clean_sequences.py first to remove these upstream.
+                    log.warning(
+                        f"Skipping non-standard header at line {lineno}: {line[:80]}"
                     )
+                    current_header = None
+                    continue
                 current_header = {
                     "header":      line[1:],
                     "proteome_id": m.group(1),
@@ -179,7 +183,7 @@ def main():
 
     for src, dst in destinations.items():
         shutil.copy2(src, dst)
-        log.info(f"Copied {src.name} → {dst}")
+        log.info(f"Copied {src.name} -> {dst}")
 
     log.info("01_search complete. Canonical FASTAs ready for 02_align:")
     log.info(f"  {destinations[args.class1]}")

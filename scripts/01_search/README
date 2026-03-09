@@ -1,22 +1,31 @@
 This part results in three files:
-- class1_sequences.fasta: contains the sequences of the hits that are classified as class 1
-- class2_sequences.fasta: contains the sequences of the hits that are classified as class 2
-- proteomes_filtered.tsv == proteomes_metadata.tsv with the viral proteomes removed
+- class1_sequences.fasta: sequences of hits classified as Class I
+- class2_sequences.fasta: sequences of hits classified as Class II
+- proteomes_filtered.tsv: proteome metadata with viral proteomes removed
+  (equivalent to proteomes_metadata.tsv)
 
 And in two tables:
-- table1_class1.csv: contains the statistics of the hits that are classified as class 1
-- table1_class2.csv: contains the statistics of the hits that are classified as class 2
+- table1_class1.csv: Class I distribution across taxonomic groups
+- table2_class2.csv: Class II distribution across taxonomic groups
 
 Running process:
 
-filter_viral.py          → data/processed/proteomes_filtered.tsv
-                                    ↓
-mmseq_run.sh             → data/raw/m8s/*.m8
-                                    ↓
-filter_hits.py           → data/processed/filtered_hits.json
-                                    ↓
-extract_sequences.py     → data/processed/class1_sequences.fasta
-                           data/processed/class2_sequences.fasta
-                                    ↓
-generate_tables.py       → results/stats/table1_class1.csv
-                           results/stats/table1_class2.csv
+filter_viral.py          -> data/processed/proteomes_filtered.tsv
+                                       |
+                                       v
+mmseq_run.sh             -> data/raw/m8s/*.m8
+                                       |
+                                       v
+filter_hits.py           -> data/processed/filtered_hits.json
+                                       |
+                                       v
+extract_sequences.py     -> data/processed/class1_sequences.fasta
+                            data/processed/class2_sequences.fasta
+                                       |
+                                       v
+clean_sequences.py       -> data/processed/class1_sequences.fasta  (in-place)
+                            data/processed/class2_sequences.fasta  (in-place)
+                                       |
+                                       v
+generate_tables.py       -> results/stats/table1_class1.csv
+                            results/stats/table2_class2.csv
