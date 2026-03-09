@@ -1,0 +1,58 @@
+name: fumaraseevo
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - python=3.11
+  - pip
+
+  # ---------------------------------------------------------------
+  # Bioinformatics tools (scripts/01_search, 02_align, 03_phylogeny)
+  # ---------------------------------------------------------------
+  - mmseqs2                # scripts/01_search  - homology search
+  - mafft                  # scripts/02_align   - multiple sequence alignment
+  - iqtree=2               # scripts/03_phylogeny - phylogenetic inference (ModelFinder + ultrafast bootstrap)
+
+  # ---------------------------------------------------------------
+  # R + phylogeny plotting (scripts/03_phylogeny/*.R)
+  # ---------------------------------------------------------------
+  - r-base=4.3
+  - r-essentials           # base R packages
+  - bioconductor-ggtree    # tree visualization
+  - bioconductor-treeio    # tree I/O (reads .iqtree, .nwk, .nexus)
+  - r-ape                  # phylogenetic tools, unrooted trees
+  - r-ggplot2
+  - r-dplyr
+  - r-tidyr
+  - r-svglite              # SVG export for figures
+
+  # ---------------------------------------------------------------
+  # Python packages
+  # ---------------------------------------------------------------
+  - pip:
+    # Data / stats (scripts/01_search, 02_align, 05_figures)
+    - numpy
+    - pandas
+    - scipy
+    - statsmodels            # Kruskal-Wallis, Wilcoxon, BH correction (scripts/05_figures/*)
+
+    # HTTP / data fetching (scripts/01_search/*)
+    - requests
+
+    # Bioinformatics
+    - biopython              # FASTA I/O, sequence utilities
+
+    # Embeddings (scripts/04_embeddings)
+    - fair-esm               # ESM-1b / 2 protein language model
+    - torch                  # ESM dependency
+    - torchvision            # torch ecosystem
+
+    # Dimensionality reduction (scripts/04_embeddings/*)
+    - scikit-learn           # t-SNE (perplexity=30, n_iter=1000)
+    - umap-learn             # UMAP (n_neighbors=15, min_dist=0.1)
+
+    # Figures (scripts/05_figures)
+    - matplotlib
+    - seaborn
