@@ -1,0 +1,15 @@
+This part results in three files:
+- class1_sequences.fasta: contains the sequences of the hits that are classified as class 1
+- class2_sequences.fasta: contains the sequences of the hits that are classified as class 2
+- proteomes_filtered.tsv == proteomes_metadata.tsv with the viral proteomes removed
+
+Running process:
+
+filter_viral.py          → data/processed/proteomes_filtered.tsv
+                                    ↓
+mmseq_run.sh             → data/raw/m8s/*.m8
+                                    ↓
+filter_hits.py           → data/processed/filtered_hits.json
+                                    ↓
+extract_sequences.py     → data/processed/class1_sequences.fasta
+                           data/processed/class2_sequences.fasta
