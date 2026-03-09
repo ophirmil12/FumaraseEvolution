@@ -1,37 +1,37 @@
 """
-extract_sequences.py - Validate and register the final representative FASTA files.
+extract_sequences.py - Fetch representative FASTA files from UniProt.
 
-At this point in the pipeline the representative sequences have already been
-produced by MMseqs2 and filtered. This script:
+Reads data/processed/filtered_hits.json (produced by filter_hits.py), collects
+the unique UniProt accessions per fumarase class, fetches their sequences from
+the UniProt REST API in batches, validates the results, and writes the canonical
+FASTA files used by all downstream steps.
 
-  1. Validates both FASTA files (header format, sequence content, duplicates)
-  2. Parses and logs a summary per taxonomic kingdom (from the header)
-  3. Copies them into data/processed/ under canonical names:
-       class1_sequences.fasta
-       class2_sequences.fasta
-
-These canonical files are the single input source for all downstream steps
-(02_align, 03_phylogeny, 04_embeddings).
+Output:
+    data/processed/class1_sequences.fasta
+    data/processed/class2_sequences.fasta
 
 Usage:
-    python scripts/01_search/extract_sequences.py \\
-        --class1 path/to/class1.fasta \\
-        --class2 path/to/class2.fasta
+    python scripts/01_search/extract_sequences.py             # both classes
+    python scripts/01_search/extract_sequences.py --class1    # Class I only
+    python scripts/01_search/extract_sequences.py --class2    # Class II only
+    python scripts/01_search/extract_sequences.py --dry-run   # count only, no fetch
+    python scripts/01_search/extract_sequences.py --force     # re-fetch if file exists
 
-    # Validate only, no copy:
-    python scripts/01_search/extract_sequences.py \\
-        --class1 path/to/class1.fasta --class2 path/to/class2.fasta --dry-run
+Note:
+    Requires internet access to rest.uniprot.org.
+    Large datasets (10,000+ sequences) may take several minutes.
 """
 
 import sys
-import re
-import shutil
+import json
+import time
 import argparse
 import logging
 from pathlib import Path
-from collections import Counter
+from collections import defaultdict, Counter
 
-# --- Project root on path ---
+import requests
+
 PROJECT_ROOT = Path(__file__).parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 from config import PATHS
@@ -43,103 +43,197 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# Expected header format: >PROTEOME_ID|db|UNIPROT_ID|GENE_NAME description
-HEADER_RE = re.compile(r"^>(UP\d+)\|(\w+)\|(\w+)\|(\S+)")
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+UNIPROT_BATCH_URL = "https://rest.uniprot.org/uniprotkb/accessions"
+BATCH_SIZE    = 200   # UniProt recommends <= 200 accessions per request
+RETRY_MAX     = 3
+RETRY_DELAY   = 5     # seconds between retries
+MIN_SEQ_LEN   = 100   # shorter sequences are flagged (fragments)
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Load hits
 # ---------------------------------------------------------------------------
 
-def parse_fasta(path: Path) -> list[dict]:
+def load_hits(json_path: Path) -> dict[int, dict[str, str]]:
     """
-    Parse a FASTA file into a list of dicts:
-        {header, proteome_id, uniprot_id, sequence}
-    Raises on malformed headers or empty sequences.
+    Read filtered_hits.json and return per-class mapping:
+        {fumarase_class: {hit_id: proteome_id}}
+
+    One hit_id may appear in multiple proteomes; the first occurrence is kept
+    (highest-scoring, since filter_hits.py processes files in sorted order).
     """
-    records = []
-    current_header = None
-    current_seq_lines = []
+    if not json_path.exists():
+        log.error(f"filtered_hits.json not found: {json_path}")
+        log.error("Run filter_hits.py first.")
+        sys.exit(1)
 
-    with open(path) as f:
-        for lineno, line in enumerate(f, 1):
-            line = line.rstrip()
-            if not line:
-                continue
-            if line.startswith(">"):
-                # Save previous record
-                if current_header is not None:
-                    seq = "".join(current_seq_lines)
-                    if not seq:
-                        raise ValueError(
-                            f"Empty sequence for header: {current_header}"
-                        )
-                    records.append({**current_header, "sequence": seq})
-                    current_seq_lines = []
+    with open(json_path) as f:
+        hits = json.load(f)
 
-                m = HEADER_RE.match(line)
-                if not m:
-                    # UPI-only headers (e.g. >UP000216052|UPI00087F1206 status=active)
-                    # have no UniProt accession. Skip with a warning.
-                    # Run clean_sequences.py first to remove these upstream.
-                    log.warning(
-                        f"Skipping non-standard header at line {lineno}: {line[:80]}"
-                    )
-                    current_header = None
-                    continue
-                current_header = {
-                    "header":      line[1:],
-                    "proteome_id": m.group(1),
-                    "uniprot_id":  m.group(3),
-                }
-            else:
-                if current_header is None:
-                    raise ValueError(f"Sequence data before first header at line {lineno}")
-                current_seq_lines.append(line)
+    by_class: dict[int, dict[str, str]] = defaultdict(dict)
+    for hit in hits:
+        cls      = hit["fumarase_class"]
+        acc      = hit["hit_id"]
+        proteome = hit["proteome_id"]
+        if acc not in by_class[cls]:
+            by_class[cls][acc] = proteome
 
-    # Save last record
-    if current_header is not None:
-        seq = "".join(current_seq_lines)
-        if not seq:
-            raise ValueError(f"Empty sequence for header: {current_header}")
-        records.append({**current_header, "sequence": seq})
+    for cls, acc_map in by_class.items():
+        log.info(f"Class {cls}: {len(acc_map):,} unique accessions to fetch")
+
+    return dict(by_class)
+
+
+# ---------------------------------------------------------------------------
+# Fetch from UniProt
+# ---------------------------------------------------------------------------
+
+def fetch_batch(accessions: list[str]) -> str:
+    """Fetch a batch of UniProt accessions as FASTA text, with retries."""
+    params = {"accessions": ",".join(accessions), "format": "fasta"}
+    for attempt in range(1, RETRY_MAX + 1):
+        try:
+            r = requests.get(UNIPROT_BATCH_URL, params=params, timeout=60)
+            r.raise_for_status()
+            return r.text
+        except requests.RequestException as e:
+            log.warning(f"  Attempt {attempt}/{RETRY_MAX} failed: {e}")
+            if attempt < RETRY_MAX:
+                time.sleep(RETRY_DELAY)
+    log.error(f"Failed to fetch batch after {RETRY_MAX} attempts.")
+    return ""
+
+
+def parse_uniprot_fasta(fasta_text: str,
+                        acc_to_proteome: dict[str, str]) -> list[tuple[str, str]]:
+    """
+    Parse a raw UniProt FASTA response and prepend the proteome ID to each header.
+
+    UniProt headers look like:
+        >sp|P0AC33|FUMA_ECOLI Fumarate hydratase class I OS=...
+        >tr|A0A066VRU3|A0A066VRU3_9PROT Fumarate hydratase OS=...
+
+    Output header format used by all downstream scripts:
+        >UP000000625|sp|P0AC33|FUMA_ECOLI Fumarate hydratase class I OS=...
+    """
+    records: list[tuple[str, str]] = []
+    current_header: str | None = None
+    current_seq: list[str] = []
+
+    for line in fasta_text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith(">"):
+            if current_header and current_seq:
+                records.append((current_header, "".join(current_seq)))
+                current_seq = []
+            parts     = line[1:].split("|")
+            accession = parts[1] if len(parts) >= 2 else ""
+            proteome  = acc_to_proteome.get(accession, "UNKNOWN")
+            current_header = f"{proteome}|{line[1:]}"
+        else:
+            current_seq.append(line)
+
+    if current_header and current_seq:
+        records.append((current_header, "".join(current_seq)))
 
     return records
 
 
-def check_duplicates(records: list[dict], label: str) -> None:
-    """Warn if any UniProt IDs appear more than once."""
-    counts = Counter(r["uniprot_id"] for r in records)
-    dupes = {uid: n for uid, n in counts.items() if n > 1}
-    if dupes:
-        log.warning(
-            f"[{label}] {len(dupes)} duplicate UniProt IDs found "
-            f"(showing first 5): {list(dupes.items())[:5]}"
-        )
-    else:
-        log.info(f"[{label}] No duplicate UniProt IDs.")
+def fetch_all(acc_to_proteome: dict[str, str]) -> list[tuple[str, str]]:
+    """
+    Fetch all accessions in batches and return (header, sequence) pairs.
+    Logs any accessions that UniProt did not return.
+    """
+    accessions = list(acc_to_proteome.keys())
+    total      = len(accessions)
+    records: list[tuple[str, str]] = []
+    missing: list[str] = []
+
+    for i in range(0, total, BATCH_SIZE):
+        batch = accessions[i : i + BATCH_SIZE]
+        end   = min(i + len(batch), total)
+        log.info(f"  Fetching {i + 1}-{end} / {total} ...")
+        fasta_text = fetch_batch(batch)
+
+        if not fasta_text.strip():
+            log.warning(f"  Empty response for batch starting at index {i}")
+            missing.extend(batch)
+            continue
+
+        batch_records = parse_uniprot_fasta(fasta_text, acc_to_proteome)
+        records.extend(batch_records)
+
+        returned     = {r[0].split("|")[2] for r in batch_records}
+        not_returned = set(batch) - returned
+        if not_returned:
+            sample = sorted(not_returned)[:5]
+            suffix = "..." if len(not_returned) > 5 else ""
+            log.warning(f"  {len(not_returned)} accessions not returned: {sample}{suffix}")
+            missing.extend(not_returned)
+
+        time.sleep(0.5)   # be polite to the API
+
+    if missing:
+        log.warning(f"{len(missing)} accessions total could not be fetched from UniProt.")
+
+    log.info(f"Fetched {len(records):,} sequences ({len(missing)} missing)")
+    return records
 
 
-def summarise(records: list[dict], label: str) -> None:
-    """Log sequence count and length distribution."""
-    lengths = [len(r["sequence"]) for r in records]
-    proteomes = len(set(r["proteome_id"] for r in records))
+# ---------------------------------------------------------------------------
+# Validate
+# ---------------------------------------------------------------------------
+
+def validate(records: list[tuple[str, str]], label: str) -> None:
+    """Log summary stats and warn about duplicates or short sequences."""
+    if not records:
+        log.error(f"[{label}] No sequences — nothing to write.")
+        return
+
+    lengths    = [len(seq) for _, seq in records]
+    accessions = []
+    for header, _ in records:
+        parts = header.split("|")
+        accessions.append(parts[2] if len(parts) >= 3 else header)
+
+    proteomes = len({h.split("|")[0] for h, _ in records})
+
     log.info(
         f"[{label}] {len(records):,} sequences | "
-        f"{proteomes:,} unique proteomes | "
-        f"length: min={min(lengths)}, max={max(lengths)}, "
-        f"mean={sum(lengths)//len(lengths)}"
+        f"{proteomes:,} proteomes | "
+        f"length min={min(lengths)} max={max(lengths)} mean={sum(lengths)//len(lengths)}"
     )
 
+    dupes = {acc: n for acc, n in Counter(accessions).items() if n > 1}
+    if dupes:
+        log.warning(f"[{label}] {len(dupes)} duplicate accessions: {list(dupes.items())[:5]}")
+    else:
+        log.info(f"[{label}] No duplicate accessions.")
 
-def validate(path: Path, label: str) -> list[dict]:
-    log.info(f"[{label}] Validating {path.name} ...")
-    records = parse_fasta(path)
-    if not records:
-        raise ValueError(f"[{label}] No sequences found in {path}")
-    check_duplicates(records, label)
-    summarise(records, label)
-    return records
+    short = sum(1 for l in lengths if l < MIN_SEQ_LEN)
+    if short:
+        log.warning(f"[{label}] {short} sequences shorter than {MIN_SEQ_LEN} aa "
+                    f"(will be removed by clean_sequences.py)")
+
+
+# ---------------------------------------------------------------------------
+# Write FASTA
+# ---------------------------------------------------------------------------
+
+def write_fasta(path: Path, records: list[tuple[str, str]]) -> None:
+    """Write (header, sequence) pairs to a FASTA file, wrapping sequence at 60 chars."""
+    with open(path, "w") as f:
+        for header, seq in records:
+            f.write(f">{header}\n")
+            for i in range(0, len(seq), 60):
+                f.write(seq[i : i + 60] + "\n")
+    log.info(f"Written {len(records):,} sequences -> {path}")
 
 
 # ---------------------------------------------------------------------------
@@ -148,46 +242,65 @@ def validate(path: Path, label: str) -> list[dict]:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Validate and register representative FASTA files."
+        description="Fetch fumarase sequences from UniProt and write canonical FASTAs."
     )
-    parser.add_argument("--class1", type=Path, required=True,
-                        help="Class I representative FASTA")
-    parser.add_argument("--class2", type=Path, required=True,
-                        help="Class II representative FASTA")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Validate only, do not copy files")
+    parser.add_argument("--class1",  action="store_true", help="Fetch Class I only")
+    parser.add_argument("--class2",  action="store_true", help="Fetch Class II only")
+    parser.add_argument(
+        "--hits", type=Path,
+        default=Path(PATHS["data_processed"]) / "filtered_hits.json",
+        help="Path to filtered_hits.json (default: data/processed/filtered_hits.json)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Report accession counts only, do not fetch or write"
+    )
+    parser.add_argument(
+        "--force", action="store_true",
+        help="Re-fetch even if output file already exists"
+    )
     args = parser.parse_args()
 
-    # Validate inputs exist
-    for p, label in [(args.class1, "Class I"), (args.class2, "Class II")]:
-        if not p.exists():
-            log.error(f"{label} FASTA not found: {p}")
-            sys.exit(1)
+    # Default: both classes
+    if not args.class1 and not args.class2:
+        args.class1 = True
+        args.class2 = True
 
-    # Validate content
-    validate(args.class1, "Class I")
-    validate(args.class2, "Class II")
-
-    if args.dry_run:
-        log.info("Dry-run complete. No files copied.")
-        return
-
-    # Copy to canonical paths in data/processed/
     out_dir = Path(PATHS["data_processed"])
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    destinations = {
-        args.class1: out_dir / "class1_sequences.fasta",
-        args.class2: out_dir / "class2_sequences.fasta",
+    by_class = load_hits(args.hits)
+
+    class_cfg = {
+        1: (out_dir / "class1_sequences.fasta", args.class1),
+        2: (out_dir / "class2_sequences.fasta", args.class2),
     }
 
-    for src, dst in destinations.items():
-        shutil.copy2(src, dst)
-        log.info(f"Copied {src.name} -> {dst}")
+    for cls, (out_path, should_run) in class_cfg.items():
+        if not should_run or cls not in by_class:
+            continue
 
-    log.info("01_search complete. Canonical FASTAs ready for 02_align:")
-    log.info(f"  {destinations[args.class1]}")
-    log.info(f"  {destinations[args.class2]}")
+        if args.dry_run:
+            log.info(f"Class {cls}: would fetch {len(by_class[cls]):,} sequences [dry-run]")
+            continue
+
+        if out_path.exists() and not args.force:
+            log.info(f"Class {cls}: {out_path.name} already exists — skipping "
+                     "(use --force to re-fetch)")
+            continue
+
+        log.info(f"Class {cls}: fetching from UniProt ...")
+        records = fetch_all(by_class[cls])
+
+        if not records:
+            log.error(f"Class {cls}: no sequences retrieved. Check network and accessions.")
+            continue
+
+        validate(records, f"Class {cls}")
+        write_fasta(out_path, records)
+
+    if not args.dry_run:
+        log.info("Done. Next step: python scripts/01_search/clean_sequences.py")
 
 
 if __name__ == "__main__":
