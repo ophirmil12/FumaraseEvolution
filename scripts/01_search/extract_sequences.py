@@ -49,7 +49,7 @@ log = logging.getLogger(__name__)
 
 UNIPROT_BATCH_URL = "https://rest.uniprot.org/uniprotkb/accessions"
 BATCH_SIZE    = 200   # UniProt recommends <= 200 accessions per request
-RETRY_MAX     = 3
+RETRY_MAX     = 10    # max number of retries for failed requests
 RETRY_DELAY   = 5     # seconds between retries
 MIN_SEQ_LEN   = 100   # shorter sequences are flagged (fragments)
 

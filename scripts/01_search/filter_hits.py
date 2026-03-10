@@ -61,6 +61,9 @@ M8_COLS = [
     "evalue", "bitscore",
 ]
 
+# Extended M8 column names — col 13 is query_length, present in our pipeline output
+M8_COLS_EXT = M8_COLS + ["query_length"]
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -142,10 +145,6 @@ def load_metadata(metadata_path: Path) -> pd.DataFrame:
         f"kingdom counts: {df['kingdom'].value_counts().to_dict()}"
     )
     return df.set_index("proteome_id")
-
-
-# Extended M8 column names — col 13 is query_length, present in our pipeline output
-M8_COLS_EXT = M8_COLS + ["query_length"]
 
 
 def parse_m8(m8_path: Path) -> pd.DataFrame:

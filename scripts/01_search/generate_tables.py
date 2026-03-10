@@ -92,7 +92,7 @@ def define_groups(df: pd.DataFrame) -> list[tuple[str, pd.Series]]:
         #        non-embryophyte Viridiplantae (green algae)
         ("Algae",
             (lin.str.contains(r"\bSar\b", na=False) & ~lin.str.contains("Metazoa", na=False)) |
-            lin.str.contains("Rhodophyta|Haptophyta", na=False) |
+            lin.str.contains("Rhodophyta|Haptophyta|Cryptophyceae", na=False) |
             (lin.str.contains("Viridiplantae", na=False) & ~lin.str.contains("Embryophyta", na=False))),
 
         ("Alphaproteobacteria",
@@ -156,7 +156,7 @@ def build_table(metadata: pd.DataFrame,
             "# Proteomes":     total,
             "# Harboring":     harboring,
             "% Harboring":     pct_h,
-            "% Lacking":       pct_l,
+            "% Lacking":       pct_l,       # TODO: In the paper, we only report % harboring
         })
 
     df_out = pd.DataFrame(rows)

@@ -1,0 +1,12 @@
+This Folder contains the SLURM job scripts for running the experiments on the
+SLURM HUJI cluster [Note that where GPU is used, the script fits the Moriah cluster,
+and may need to be modified for other clusters].
+
+There is no real need to run the scripts in this folder, as they are specially designed
+for the SLURM cluster, and are not general-purpose scripts. However, they can be used as a reference
+for how to run the experiments on a SLURM cluster, and can be modified to fit other clusters as needed.
+
+We used miniconda to create a virtual environment for running the experiments,
+and created the environment using the `environment.yaml` file in the root of the repository.
+
+For more details, instructions, and help with running the experiments, please contact the authors.
