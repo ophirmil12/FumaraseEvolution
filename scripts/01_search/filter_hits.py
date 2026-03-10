@@ -73,67 +73,140 @@ log = logging.getLogger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
+def parse_lineage(lineage: str) -> tuple[str, str]:
+    """
+    Derive kingdom and phylum from a UniProt taxonomic lineage string.
+
+    Lineage format (comma-separated, most general to most specific):
+        "cellular organisms, Bacteria, Pseudomonadota, Gammaproteobacteria, ..."
+        "cellular organisms, Eukaryota, Opisthokonta, Fungi, ..."
+        "cellular organisms, Archaea, TACK group, Thermoproteota, ..."
+
+    Returns (kingdom, phylum); "Unknown" if not determinable.
+    """
+    if not isinstance(lineage, str) or not lineage.strip():
+        return "Unknown", "Unknown"
+
+    parts = [p.strip() for p in lineage.split(",")]
+
+    # Intermediate grouping nodes that are not informative phyla
+    _SKIP = {
+        "Opisthokonta", "Archaeplastida", "Discoba", "Metamonada",
+        "Sar", "SAR", "Alveolata", "Rhizaria", "Stramenopiles",
+        "Amoebozoa", "Apusozoa", "Cryptophyceae", "Haptophyta",
+        "TACK group", "DPANN group", "Asgard group", "FCB group",
+        "PVC group", "Terrabacteria group", "Acidobacteriota group",
+    }
+
+    for kingdom_name in ("Eukaryota", "Bacteria", "Archaea", "Viruses"):
+        if kingdom_name in parts:
+            idx = parts.index(kingdom_name)
+            phylum = "Unknown"
+            for p in parts[idx + 1:]:
+                if p and p not in _SKIP and "group" not in p.lower():
+                    phylum = p
+                    break
+            return kingdom_name, phylum
+
+    return "Unknown", "Unknown"
+
+
 def load_metadata(metadata_path: Path) -> pd.DataFrame:
     """
-    Load organism metadata TSV produced by the search step.
-    Expected columns: proteome_id, organism, organism_id, kingdom, phylum.
+    Load organism metadata TSV (produced by filter_viral.py) and derive
+    kingdom and phylum from the taxonomic_lineage column.
+
+    Required columns: proteome_id, organism, organism_id, taxonomic_lineage.
+    Adds derived columns: kingdom, phylum.
     """
     if not metadata_path.exists():
         raise FileNotFoundError(
             f"Metadata file not found: {metadata_path}\n"
-            "Run the MMseqs search step first to generate organism metadata."
+            "Run filter_viral.py first to generate proteome_metadata.tsv."
         )
     df = pd.read_csv(metadata_path, sep="\t", dtype=str)
-    required = {"proteome_id", "organism", "organism_id", "kingdom", "phylum"}
+    required = {"proteome_id", "organism", "organism_id", "taxonomic_lineage"}
     missing = required - set(df.columns)
     if missing:
-        raise ValueError(f"Metadata TSV is missing columns: {missing}")
+        raise ValueError(
+            f"Metadata TSV is missing columns: {missing}\n"
+            "Re-run filter_viral.py — the output must include taxonomic_lineage."
+        )
+
+    parsed        = df["taxonomic_lineage"].apply(parse_lineage)
+    df["kingdom"] = parsed.apply(lambda x: x[0])
+    df["phylum"]  = parsed.apply(lambda x: x[1])
+
+    log.info(
+        f"Metadata: {len(df):,} proteomes | "
+        f"kingdom counts: {df['kingdom'].value_counts().to_dict()}"
+    )
     return df.set_index("proteome_id")
+
+
+# Extended M8 column names — col 13 is query_length, present in our pipeline output
+M8_COLS_EXT = M8_COLS + ["query_length"]
 
 
 def parse_m8(m8_path: Path) -> pd.DataFrame:
     """
-    Read a single .m8 file into a DataFrame. Returns empty DF if file is empty.
+    Read a single .m8 file into a DataFrame.
 
-    Handles two variants produced by the search pipeline:
-      - 12 columns: standard BLAST tabular (no header)
-      - 13 columns: adds Query_Length as col 13 (silently ignored)
-    Both variants may optionally include a text header row starting with
-    "Query_ID", which is automatically skipped.
-    Identity values may be in 0-1 or 0-100 scale; both are handled downstream.
+    Column layout produced by mmseq_run.sh:
+        query_id   : proteome protein accession, prefixed "class1_" or "class2_"
+        hit_id     : fumarase reference accession (P0AC33 or P05042)
+        cols 3-12  : standard BLAST tabular fields
+        col 13     : query_length (aa length of the proteome protein)
+
+    Identity values are already in 0-1 scale.
+    An optional text header row (starting with "Query_ID") is skipped if present.
+    Returns empty DataFrame if file is empty or unreadable.
     """
     if m8_path.stat().st_size == 0:
-        return pd.DataFrame(columns=M8_COLS)
+        return pd.DataFrame(columns=M8_COLS_EXT)
 
-    # Detect optional header row
     with open(m8_path) as fh:
         first = fh.readline()
-    skip = 1 if first.lower().startswith("query_id") or first.lower().startswith("query\t") else 0
+    skip = 1 if first.lower().startswith("query") else 0
 
-    # Read file; accept 12 or 13 columns (13th = Query_Length, ignored).
-    # Let pandas infer the column count, then rename the first 12.
-    df = pd.read_csv(
-        m8_path, sep="\t", header=None,
-        skiprows=skip,
-    )
-    df = df.iloc[:, :len(M8_COLS)]   # keep first 12 cols, drop any extra
-    df.columns = M8_COLS
+    df = pd.read_csv(m8_path, sep="\t", header=None, skiprows=skip)
+
+    if df.shape[1] >= 13:
+        df = df.iloc[:, :13]
+        df.columns = M8_COLS_EXT
+    else:
+        df = df.iloc[:, :12]
+        df.columns = M8_COLS
+        df["query_length"] = None   # coverage will be skipped if missing
+
+    # Coerce numeric columns
+    for col in ("identity", "evalue", "bitscore", "alignment_len", "query_length"):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
     return df
 
 
-def compute_coverage(df: pd.DataFrame, query_length: int) -> pd.Series:
-    """Coverage = alignment length / query length."""
-    return df["alignment_len"] / query_length
+def apply_filters(df: pd.DataFrame, class_prefix: str) -> pd.DataFrame:
+    """
+    Filter rows for a given class and apply quality thresholds.
 
+    - Keeps only rows whose query_id starts with class_prefix ("class1_" / "class2_")
+    - Identity is already 0-1 (no division needed)
+    - Coverage = alignment_len / query_length  (using per-row query_length from col 13)
+    - Applies evalue, identity, coverage cutoffs from config
+    - Returns one row per unique hit_id (best bitscore), so each proteome protein
+      appears at most once in the output
+    """
+    df = df[df["query_id"].str.startswith(class_prefix)].copy()
+    if df.empty:
+        return df
 
-def apply_filters(df: pd.DataFrame, query_length: int) -> pd.DataFrame:
-    """Apply e-value, identity, and coverage filters from config."""
-    df = df.copy()
-    # Identity may be 0-1 or 0-100 depending on MMseqs2 output format.
-    # Normalise to 0-1 only if values appear to be in 0-100 scale.
-    if df["identity"].max() > 1.0:
-        df["identity"] = df["identity"] / 100.0
-    df["coverage"] = compute_coverage(df, query_length)
+    # Coverage per row using the proteome protein's own length
+    if df["query_length"].notna().all():
+        df["coverage"] = df["alignment_len"] / df["query_length"]
+    else:
+        df["coverage"] = 0.0   # can't compute — will be filtered out
 
     before = len(df)
     df = df[
@@ -141,19 +214,13 @@ def apply_filters(df: pd.DataFrame, query_length: int) -> pd.DataFrame:
         (df["identity"] >= MMSEQS2["identity_cutoff"]) &
         (df["coverage"] >= MMSEQS2["coverage_cutoff"])
     ]
+
+    # Keep best hit per proteome protein (highest bitscore)
+    df = df.sort_values("bitscore", ascending=False).drop_duplicates("query_id")
+
     after = len(df)
-    log.info(f"  Filter: {before} -> {after} hits "
-             f"(removed {before - after})")
+    log.debug(f"  {class_prefix}: {before} -> {after} passing hits")
     return df
-
-
-def flag_manual_review(hits_by_proteome: dict) -> set:
-    """Return proteome IDs with <= min_hits_for_auto hits (need manual review)."""
-    threshold = MMSEQS2["min_hits_for_auto"]
-    return {
-        pid for pid, hits in hits_by_proteome.items()
-        if len(hits) <= threshold
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -163,78 +230,73 @@ def flag_manual_review(hits_by_proteome: dict) -> set:
 def process_class(fumarase_class: int, metadata: pd.DataFrame) -> list[dict]:
     """
     Process all .m8 files for a given fumarase class.
+
+    Each .m8 file corresponds to one proteome (named UP000XXXXX_output.m8)
+    and contains one row per proteome protein that matched the fumarase query.
+    We keep the single best-scoring protein per proteome as the representative hit.
+
     Returns a list of hit dicts ready for JSON serialisation.
     """
-    query_key  = f"class{fumarase_class}"
-    query_id   = QUERIES[query_key]["uniprot_id"]
-    query_len  = QUERIES[query_key]["length"]
-    m8_dir     = Path(PATHS["data_raw"]) / "m8s"
+    class_prefix = f"class{fumarase_class}_"
+    query_id     = QUERIES[f"class{fumarase_class}"]["uniprot_id"]
+    m8_dir       = Path(PATHS["data_raw"]) / "m8s"
 
     m8_files = sorted(m8_dir.glob("*_output.m8"))
     if not m8_files:
         log.warning(f"No .m8 files found in {m8_dir}")
         return []
 
-    log.info(f"Class {fumarase_class}: processing {len(m8_files)} .m8 files "
-             f"(query={query_id}, length={query_len})")
+    log.info(f"Class {fumarase_class}: scanning {len(m8_files)} .m8 files "
+             f"for prefix '{class_prefix}' (reference={query_id})")
 
-    hits_by_proteome: dict[str, list] = defaultdict(list)
-    total_raw = 0
+    all_hits   = []
+    n_files_hit = 0
+    n_raw_total = 0
 
     for m8_path in m8_files:
         proteome_id = m8_path.name.replace("_output.m8", "")
         df = parse_m8(m8_path)
-        total_raw += len(df)
 
         if df.empty:
             continue
 
-        df = apply_filters(df, query_len)
+        n_raw_total += df["query_id"].str.startswith(class_prefix).sum()
+        df = apply_filters(df, class_prefix)
 
         if df.empty:
             continue
 
-        # Attach metadata
+        n_files_hit += 1
         meta = metadata.loc[proteome_id] if proteome_id in metadata.index else {}
 
-        for _, row in df.iterrows():
-            hits_by_proteome[proteome_id].append({
-                "proteome_id":    proteome_id,
-                "query_id":       query_id,
-                "fumarase_class": fumarase_class,
-                "hit_id":         row["hit_id"],
-                "identity":       round(float(row["identity"]), 4),
-                "alignment_len":  int(row["alignment_len"]),
-                "mismatches":     int(row["mismatches"]),
-                "gap_opens":      int(row["gap_opens"]),
-                "q_start":        int(row["q_start"]),
-                "q_end":          int(row["q_end"]),
-                "s_start":        int(row["s_start"]),
-                "s_end":          int(row["s_end"]),
-                "evalue":         float(row["evalue"]),
-                "bitscore":       float(row["bitscore"]),
-                "coverage":       round(float(row["coverage"]), 4),
-                "organism":       str(meta.get("organism",    "NA")),
-                "organism_id":    str(meta.get("organism_id", "NA")),
-                "kingdom":        str(meta.get("kingdom",     "NA")),
-                "phylum":         str(meta.get("phylum",      "NA")),
-            })
+        # One representative hit per proteome = top bitscore row
+        row = df.sort_values("bitscore", ascending=False).iloc[0]
 
-    # Flatten to list
-    all_hits = [hit for hits in hits_by_proteome.values() for hit in hits]
-
-    # Flag low-hit proteomes
-    manual = flag_manual_review(hits_by_proteome)
-    if manual:
-        log.warning(
-            f"  {len(manual)} proteomes have <= {MMSEQS2['min_hits_for_auto']} hits "
-            f"and require manual verification: {sorted(manual)}"
-        )
+        all_hits.append({
+            "proteome_id":    proteome_id,
+            "query_id":       query_id,
+            "fumarase_class": fumarase_class,
+            "hit_id":         str(row["query_id"]).replace(class_prefix, "", 1),
+            "identity":       round(float(row["identity"]), 4),
+            "alignment_len":  int(row["alignment_len"]),
+            "mismatches":     int(row["mismatches"]),
+            "gap_opens":      int(row["gap_opens"]),
+            "q_start":        int(row["q_start"]),
+            "q_end":          int(row["q_end"]),
+            "s_start":        int(row["s_start"]),
+            "s_end":          int(row["s_end"]),
+            "evalue":         float(row["evalue"]),
+            "bitscore":       float(row["bitscore"]),
+            "coverage":       round(float(row["coverage"]), 4),
+            "organism":       str(meta.get("organism",    "NA")),
+            "organism_id":    str(meta.get("organism_id", "NA")),
+            "kingdom":        str(meta.get("kingdom",     "NA")),
+            "phylum":         str(meta.get("phylum",      "NA")),
+        })
 
     log.info(
-        f"Class {fumarase_class} summary: "
-        f"{total_raw} raw hits -> {len(all_hits)} passing hits "
-        f"across {len(hits_by_proteome)} proteomes"
+        f"Class {fumarase_class}: {n_raw_total:,} raw hits across all files "
+        f"-> {len(all_hits):,} proteomes with a passing representative hit"
     )
     return all_hits
 

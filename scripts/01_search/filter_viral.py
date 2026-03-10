@@ -13,7 +13,7 @@ Usage:
     python scripts/01_search/filter_viral.py --input data/raw/uniprot_proteomes_raw.tsv
 
 Output:
-    data/processed/proteomes_filtered.tsv
+    data/processed/proteome_metadata.tsv   (viral entries removed, all columns kept)
 """
 
 import sys
@@ -24,7 +24,6 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-# --- Project root on path ---
 PROJECT_ROOT = Path(__file__).parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 from config import PATHS
@@ -35,19 +34,36 @@ from config import PATHS
 
 UNIPROT_PROTEOMES_URL = (
     "https://rest.uniprot.org/proteomes/stream"
-    "?query=*&format=tsv"
+    "?query=proteome_type%3A1&format=tsv"
     "&fields=upid,organism,organism_id,protein_count,busco,cpd,lineage"
 )
 
-EXPECTED_COLS = {
-    "Proteome Id", "Organism", "Organism Id",
-    "Protein count", "BUSCO", "CPD", "Lineage",
+# Columns that must be present in the downloaded/cached TSV.
+# "Taxonomic lineage" is used for viral filtering AND kept in the output
+# so that downstream scripts (filter_hits.py, generate_tables.py) can
+# assign taxonomy without a separate lookup.
+REQUIRED_COLS = {
+    "Proteome Id",
+    "Organism",
+    "Organism Id",
+    "Protein count",
+    "BUSCO",
+    "CPD",
+    "Taxonomic lineage",
 }
 
-OUTPUT_COLS = [
-    "proteome_id", "organism", "organism_id",
-    "protein_count", "busco", "cpd",
-]
+# Snake-case rename map applied before writing.
+# All columns are renamed and written; none are dropped.
+RENAME = {
+    "Proteome Id":       "proteome_id",
+    "Organism":          "organism",
+    "Organism Id":       "organism_id",
+    "Protein count":     "protein_count",
+    "BUSCO":             "busco",
+    "CPD":               "cpd",
+    "Taxonomic lineage": "taxonomic_lineage",
+    "Taxon mnemonic":    "taxon_mnemonic",   # present in real downloads; kept if available
+}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,14 +79,14 @@ log = logging.getLogger(__name__)
 
 def download_proteome_list(raw_path: Path) -> pd.DataFrame:
     """Fetch full proteome list from UniProt and cache locally."""
-    log.info("Downloading UniProt reference proteome list...")
+    log.info("Downloading UniProt reference proteome list ...")
     raw_path.parent.mkdir(parents=True, exist_ok=True)
 
     with requests.get(UNIPROT_PROTEOMES_URL, stream=True, timeout=120) as r:
         r.raise_for_status()
         raw_path.write_bytes(r.content)
 
-    log.info(f"Cached raw proteome list → {raw_path}")
+    log.info(f"Cached raw proteome list -> {raw_path}")
     return pd.read_csv(raw_path, sep="\t", dtype=str)
 
 
@@ -80,36 +96,35 @@ def load_local(path: Path) -> pd.DataFrame:
 
 
 def validate_columns(df: pd.DataFrame) -> None:
-    missing = EXPECTED_COLS - set(df.columns)
+    missing = REQUIRED_COLS - set(df.columns)
     if missing:
         raise ValueError(
-            f"Input TSV is missing expected columns: {missing}\n"
+            f"Input TSV is missing required columns: {missing}\n"
             f"Found: {list(df.columns)}"
         )
 
 
 def filter_viral(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
     """
-    Drop rows whose Lineage contains 'Viruses'.
+    Drop rows where 'Taxonomic lineage' contains 'Viruses' or 'Organism' is empty/NaN.
     Returns (filtered_df, n_removed).
     """
-    before = len(df)
-    is_viral = df["Lineage"].str.contains("Viruses", case=False, na=False)
-    df_clean = df[~is_viral].copy()
-    return df_clean, before - len(df_clean)
+    # Create masks for criteria we want to EXCLUDE
+    is_viral = df["Taxonomic lineage"].str.contains("Viruses", case=False, na=False)
+    is_empty_org = df["Organism"].isna() | (df["Organism"] == "")
 
+    # Keep only the rows that satisfy both conditions
+    df_clean = df[~(is_viral | is_empty_org)].copy()
 
-def rename_and_select(df: pd.DataFrame) -> pd.DataFrame:
-    """Rename UniProt column headers to snake_case and drop Lineage."""
-    col_map = {
-        "Proteome Id":   "proteome_id",
-        "Organism":      "organism",
-        "Organism Id":   "organism_id",
-        "Protein count": "protein_count",
-        "BUSCO":         "busco",
-        "CPD":           "cpd",
-    }
-    return df.rename(columns=col_map)[OUTPUT_COLS]
+    n_removed = len(df) - len(df_clean)
+    return df_clean, n_removed
+
+def rename_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Rename UniProt column headers to snake_case.
+    Unknown extra columns are kept as-is.
+    """
+    return df.rename(columns=RENAME)
 
 
 # ---------------------------------------------------------------------------
@@ -127,8 +142,8 @@ def main():
     )
     parser.add_argument(
         "--out", type=Path,
-        default=Path(PATHS["data_processed"]) / "proteomes_filtered.tsv",
-        help="Output TSV path (default: data/processed/proteomes_filtered.tsv)"
+        default=Path(PATHS["data_processed"]) / "proteome_metadata.tsv",
+        help="Output TSV path (default: data/processed/proteome_metadata.tsv)"
     )
     args = parser.parse_args()
 
@@ -140,25 +155,21 @@ def main():
     else:
         df = download_proteome_list(raw_cache)
 
-    log.info(f"Loaded {len(df):,} proteomes total")
+    log.info(f"Loaded {len(df):,} proteomes")
 
     # Validate
     validate_columns(df)
 
-    # Filter
+    # Filter viral
     df_clean, n_removed = filter_viral(df)
-    log.info(f"Removed {n_removed:,} viral proteomes → {len(df_clean):,} remaining")
+    log.info(f"Removed {n_removed:,} viral proteomes -> {len(df_clean):,} remaining")
 
-    # Rename and write
-    df_out = rename_and_select(df_clean)
+    # Rename and write — all columns retained
+    df_out = rename_columns(df_clean)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     df_out.to_csv(args.out, sep="\t", index=False)
-    log.info(f"Written → {args.out}")
-
-    # Also write a metadata-only TSV for filter_hits.py
-    metadata_path = Path(PATHS["data_processed"]) / "proteome_metadata.tsv"
-    df_out.to_csv(metadata_path, sep="\t", index=False)
-    log.info(f"Metadata copy written → {metadata_path}")
+    log.info(f"Written -> {args.out}")
+    log.info(f"Columns: {list(df_out.columns)}")
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ data/external/
 
 # Python
 __pycache__/
+.idea/
 *.py[cod]
 *.egg-info/
 .env
