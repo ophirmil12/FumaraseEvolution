@@ -8,6 +8,14 @@ Shannon entropy H at position i:
 Lower H = higher conservation (H=0 means perfectly conserved).
 Scale: 0 (perfect conservation) to ~4.32 bits (log2(20), maximum variability).
 
+Scores are computed over ALL alignment columns, then filtered to only the
+columns where the E. coli reference sequence (P0AC33 / P05042) has a residue.
+This maps scores back to reference sequence positions (0–548 for Class I,
+0–467 for Class II), matching the x-axis in Figure 5.
+
+For baseline proteins (no reference defined), scores are reported over all
+alignment columns.
+
 Also computes baseline entropy for a ribosomal protein (highly conserved) and
 a membrane transporter (highly divergent) for context, if provided.
 
@@ -28,12 +36,12 @@ Usage:
 
     # With baselines:
     python scripts/02_align/entropy.py \\
-        --baseline-conserved  data/external/rplA_aligned.fasta \\
-        --baseline-divergent  data/external/membrane_transporter_aligned.fasta
+        --baseline-conserved  data/external/conservation_baseline/rplA_aligned.fasta \\
+        --baseline-divergent  data/external/conservation_baseline/mfs_transporter_aligned.fasta
 
 Output:
-    results/stats/entropy_class1.csv     per-position scores
-    results/stats/entropy_class2.csv     per-position scores
+    results/stats/entropy_class1.csv     per-position scores (reference positions only)
+    results/stats/entropy_class2.csv     per-position scores (reference positions only)
     results/stats/entropy_summary.csv    mean scores per alignment + baselines
 """
 
@@ -139,6 +147,45 @@ def compute_entropy(sequences: list[str]) -> np.ndarray:
 
 
 # ---------------------------------------------------------------------------
+# Reference column filtering
+# ---------------------------------------------------------------------------
+
+def get_reference_sequence(headers: list[str],
+                            sequences: list[str],
+                            uniprot_id: str) -> str | None:
+    """
+    Find and return the reference sequence in the alignment by UniProt ID.
+    Returns None if not found.
+    """
+    for header, seq in zip(headers, sequences):
+        if uniprot_id in header:
+            log.info(f"  Reference sequence found: {header[:80]}")
+            return seq
+    log.warning(
+        f"  Reference sequence {uniprot_id} not found in alignment. "
+        "Scores will be reported over all alignment columns."
+    )
+    return None
+
+
+def get_reference_columns(ref_seq: str) -> list[int]:
+    """
+    Return alignment column indices where the reference has a residue (not a gap).
+    These are the columns that map to reference sequence positions.
+    """
+    return [i for i, aa in enumerate(ref_seq) if aa not in GAP_CHARS]
+
+
+def filter_to_reference(scores: np.ndarray, ref_seq: str) -> np.ndarray:
+    """
+    Filter full-MSA entropy scores to only the columns where the reference
+    sequence has a residue. Returns array of length = ungapped reference length.
+    """
+    ref_cols = get_reference_columns(ref_seq)
+    return scores[ref_cols]
+
+
+# ---------------------------------------------------------------------------
 # Functional site mapping
 # ---------------------------------------------------------------------------
 
@@ -153,52 +200,32 @@ FUNCTIONAL_SITES = {
     "class2": {
         "name":     "Class II (P05042)",
         "residues": [187, 317, 323, 330],     # His188, Ser318, Lys324, Glu331
-        # "substrate_binding": [99, 138, 139, 140, 186, 325]    # the others are the catalytic residues
     },
 }
 
 
-def map_sites_to_alignment(headers: list[str],
-                           sequences: list[str],
-                           uniprot_id: str,
-                           residue_positions: list[int]) -> list[int]:
+def map_sites_to_reference(residue_positions: list[int],
+                            ref_seq: str,
+                            uniprot_id: str) -> list[int]:
     """
-    Locate the E. coli reference sequence in the alignment by its UniProt ID
-    (as defined in config.py QUERIES) and map ungapped residue positions to
-    alignment column indices.
+    Map ungapped residue positions (0-indexed) to reference-sequence indices.
 
-    Returns list of alignment column indices (one per functional site).
-    Returns empty list if the reference sequence is not found.
+    Since scores are already filtered to reference columns, the functional site
+    positions ARE the indices into the filtered scores array — we just need to
+    verify they fall within the ungapped reference length.
+
+    Returns list of 0-indexed positions into the reference-filtered scores array.
     """
-    ref_seq = None
-    for header, seq in zip(headers, sequences):
-        if uniprot_id in header:
-            ref_seq = seq
-            log.info(f"  Reference sequence found: {header[:80]}")
-            break
-
-    if ref_seq is None:
-        log.warning(
-            f"E. coli reference {uniprot_id} not found in alignment headers. "
-            "Ensure the reference FASTA was included in the input sequences."
-        )
-        return []
-
-    # Build map: ungapped position -> alignment column
-    ungapped_to_col = {}
-    ungapped_pos = 0
-    for col_idx, aa in enumerate(ref_seq):
-        if aa not in GAP_CHARS:
-            ungapped_to_col[ungapped_pos] = col_idx
-            ungapped_pos += 1
-
+    ref_len = sum(1 for aa in ref_seq if aa not in GAP_CHARS)
     mapped = []
-    for res_pos in residue_positions:
-        if res_pos in ungapped_to_col:
-            mapped.append(ungapped_to_col[res_pos])
+    for pos in residue_positions:
+        if pos < ref_len:
+            mapped.append(pos)
         else:
-            log.warning(f"Residue position {res_pos} not found in reference sequence.")
-
+            log.warning(
+                f"  Residue position {pos} exceeds reference length {ref_len} "
+                f"for {uniprot_id} — skipping."
+            )
     return mapped
 
 
@@ -208,42 +235,69 @@ def map_sites_to_alignment(headers: list[str],
 
 def process_alignment(fasta_path: Path,
                       label: str,
-                      class_key: str | None = None) -> dict:
+                      class_key: str | None = None) -> tuple[dict, pd.DataFrame]:
     """
-    Parse alignment, compute entropy, optionally map functional sites.
-    Returns summary dict and per-position DataFrame.
+    Parse alignment, compute entropy over all columns, then filter to reference
+    sequence positions (if a reference is defined for this class).
+
+    Returns (summary_dict, per_position_DataFrame).
     """
     log.info(f"Processing {label}: {fasta_path.name}")
     headers, sequences = parse_aligned_fasta(fasta_path)
-    scores = compute_entropy(sequences)
+
+    # Compute entropy over all MSA columns
+    scores_full = compute_entropy(sequences)
+    log.info(f"  Full alignment entropy computed: {len(scores_full):,} columns")
+
+    # --- Filter to reference columns if this is a fumarase class ---
+    if class_key and class_key in FUNCTIONAL_SITES:
+        uniprot_id = QUERIES[class_key]["uniprot_id"]
+        ref_seq = get_reference_sequence(headers, sequences, uniprot_id)
+
+        if ref_seq is not None:
+            scores = filter_to_reference(scores_full, ref_seq)
+            ref_len = len(scores)
+            log.info(
+                f"  Filtered to reference columns: {ref_len} positions "
+                f"(= ungapped {uniprot_id} length)"
+            )
+        else:
+            # Reference not found — fall back to full alignment scores
+            scores = scores_full
+            ref_seq = None
+            log.warning("  Falling back to full alignment scores.")
+    else:
+        # Baseline proteins: no reference defined, use all columns
+        # Note: here we could optionally choose reference sequences for the baselines as well
+        scores = scores_full
+        ref_seq = None
 
     mean_entropy = float(np.mean(scores))
     log.info(f"  Mean entropy: {mean_entropy:.4f} bits")
 
-    # Per-position DataFrame
+    # --- Per-position DataFrame ---
     df = pd.DataFrame({
         "position":  np.arange(1, len(scores) + 1),   # 1-indexed
         "entropy":   scores,
-        "conserved": scores < ENTROPY["scale_max"] * 0.25,  # bottom quartile = highly conserved
+        "conserved": scores < ENTROPY["scale_max"] * 0.25,  # bottom quartile
     })
 
-    # Map functional sites if this is a fumarase class
-    site_col_indices = []
-    if class_key and class_key in FUNCTIONAL_SITES:
+    # --- Map functional sites ---
+    site_indices = []
+    if class_key and class_key in FUNCTIONAL_SITES and ref_seq is not None:
         sites = FUNCTIONAL_SITES[class_key]
-        # Reference UniProt ID comes from config.py QUERIES
         uniprot_id = QUERIES[class_key]["uniprot_id"]
-        site_col_indices = map_sites_to_alignment(
-            headers, sequences, uniprot_id, sites["residues"]
+        site_indices = map_sites_to_reference(
+            sites["residues"], ref_seq, uniprot_id
         )
-        df["is_functional_site"] = df.index.isin(site_col_indices)
+        df["is_functional_site"] = df.index.isin(site_indices)
 
-        if site_col_indices:
-            site_entropy = scores[site_col_indices]
+        if site_indices:
+            site_entropy = scores[site_indices]
             mean_site_entropy = float(np.mean(site_entropy))
             log.info(
                 f"  Functional site mean entropy: {mean_site_entropy:.4f} bits "
-                f"({len(site_col_indices)} sites mapped)"
+                f"({len(site_indices)} sites mapped)"
             )
         else:
             mean_site_entropy = None
@@ -252,12 +306,13 @@ def process_alignment(fasta_path: Path,
         mean_site_entropy = None
 
     summary = {
-        "label":               label,
-        "n_sequences":         len(sequences),
-        "alignment_length":    len(scores),
-        "mean_entropy":        round(mean_entropy, 4),
-        "mean_site_entropy":   round(mean_site_entropy, 4) if mean_site_entropy else None,
-        "n_functional_sites":  len(site_col_indices),
+        "label":                label,
+        "n_sequences":          len(sequences),
+        "alignment_length":     len(scores_full),
+        "reference_length":     len(scores),
+        "mean_entropy":         round(mean_entropy, 4),
+        "mean_site_entropy":    round(mean_site_entropy, 4) if mean_site_entropy is not None else None,
+        "n_functional_sites":   len(site_indices),
         "pct_highly_conserved": round((scores < 0.5).mean() * 100, 2),
     }
 
@@ -288,7 +343,7 @@ def main():
     parser.add_argument(
         "--baseline-divergent", type=Path, default=None,
         metavar="FASTA",
-        help="Aligned FASTA of a divergent reference protein (e.g. membrane transporter)"
+        help="Aligned FASTA of a divergent reference protein (e.g. MFS transporter)"
     )
     parser.add_argument(
         "--outdir", type=Path,
