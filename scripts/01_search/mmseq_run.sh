@@ -70,6 +70,29 @@ if [[ ! -f "$QUERY_FASTA" ]]; then
   exit 1
 fi
 
+# --- Derive class prefix from query filename ---
+QUERY_BASENAME=$(basename "$QUERY_FASTA" .fasta)
+if [[ "$QUERY_BASENAME" == *"fumA"* || "$QUERY_BASENAME" == *"fuma"* ]]; then
+  CLASS_PREFIX="class1"
+elif [[ "$QUERY_BASENAME" == *"fumC"* || "$QUERY_BASENAME" == *"fumc"* ]]; then
+  CLASS_PREFIX="class2"
+else
+  echo "Error: cannot determine class from query filename '$QUERY_BASENAME'."
+  echo "Filename must contain 'fumA' or 'fumC'."
+  exit 1
+fi
+
+# --- Rewrite query header with class prefix into a temp file ---
+# Original: >sp|P0AC33|FUMA_ECOLI ...
+# Becomes:  >class1_P0AC33
+PREFIXED_QUERY="$TMP_DIR/query_${CLASS_PREFIX}.fasta"
+awk -v prefix="$CLASS_PREFIX" '
+  /^>/ { split($0, a, "|"); print ">" prefix "_" a[2]; next }
+  { print }
+' "$QUERY_FASTA" > "$PREFIXED_QUERY"
+
+echo "Query prefix: $CLASS_PREFIX ($(head -1 "$PREFIXED_QUERY"))"
+
 # --- Per-proteome worker function (called by GNU parallel) ---
 process_proteome() {
   local proteome_id="$1"
@@ -110,6 +133,7 @@ process_proteome() {
       "$tmp_dir/${proteome_id}_tmp" \
       --threads 1 \
       -s 7.5 \
+      --format-output "query,target,fident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits,qlen" \
       2>>"$m8_dir/${proteome_id}.log"; then
     echo "[DONE] $proteome_id → $m8_file"
   else
@@ -125,6 +149,7 @@ echo "========================================"
 echo " MMseqs2 search"
 echo " TSV:    $TSV_FILE"
 echo " Query:  $QUERY_FASTA"
+echo " Class:  $CLASS_PREFIX"
 echo " FASTAs: $FASTA_DIR"
 echo " .m8s:   $M8_DIR"
 echo " Jobs:   $N_JOBS"
@@ -137,7 +162,7 @@ tail -n +2 "$TSV_FILE" \
       --bar \
       --halt soon,fail=1 \
       process_proteome {} \
-        "$QUERY_FASTA" \
+        "$PREFIXED_QUERY" \
         "$FASTA_DIR" \
         "$M8_DIR" \
         "$TMP_DIR"

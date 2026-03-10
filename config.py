@@ -16,6 +16,8 @@ PATHS = {
     "alignments":     ROOT / "results" / "alignments",
     "trees":          ROOT / "results" / "trees",
     "figures":        ROOT / "results" / "figures",
+    "stats": ROOT / "results" / "stats",
+
 }
 
 # --- Query sequences (E. coli K-12) ---
