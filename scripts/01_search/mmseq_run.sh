@@ -159,8 +159,8 @@ tail -n +2 "$TSV_FILE" \
   | cut -f1 \
   | parallel \
       --jobs "$N_JOBS" \
-      --bar \
-      --halt soon,fail=1 \
+      --progress \
+      --halt never \
       process_proteome {} \
         "$PREFIXED_QUERY" \
         "$FASTA_DIR" \

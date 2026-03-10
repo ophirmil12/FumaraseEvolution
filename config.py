@@ -36,7 +36,7 @@ QUERIES = {
 
 # --- MMseqs2 filtering thresholds ---
 MMSEQS2 = {
-    "evalue_cutoff":     1e-2,   # 0.01
+    "evalue_cutoff":     1e-3,   # 0.001
     "identity_cutoff":   0.40,   # 40%
     "coverage_cutoff":   0.40,   # 40% of query length
     "min_hits_for_auto": 5,      # organisms with <= 5 hits are manually verified
