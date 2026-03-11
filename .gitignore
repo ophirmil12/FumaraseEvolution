@@ -31,3 +31,6 @@ slurm_out/
 
 # Conda
 envs/fumaraseevo/
+
+# Hugging Face cache
+.hf_cache/
