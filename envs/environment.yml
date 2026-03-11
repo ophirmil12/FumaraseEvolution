@@ -17,14 +17,14 @@ dependencies:
   - pip
 
   # ---------------------------------------------------------------
-  # Bioinformatics tools (scripts/01_search, 02_align, 03_phylogeny)
+  # Bioinformatics tools
   # ---------------------------------------------------------------
-  - mmseqs2                # scripts/01_search  - homology search
-  - mafft                  # scripts/02_align   - multiple sequence alignment
-  - iqtree=2               # scripts/03_phylogeny - phylogenetic inference (ModelFinder + ultrafast bootstrap)
+  - mmseqs2                # homology search
+  - mafft                  # multiple sequence alignment
+  - iqtree=2               # phylogenetic inference (ModelFinder + ultrafast bootstrap)
 
   # ---------------------------------------------------------------
-  # R + phylogeny plotting (scripts/03_phylogeny/*.R)
+  # R + phylogeny plotting
   # ---------------------------------------------------------------
   - r-base=4.3
   - r-essentials           # base R packages
@@ -40,27 +40,33 @@ dependencies:
   # Python packages
   # ---------------------------------------------------------------
   - pip:
-    # Data / stats (scripts/01_search, 02_align, 05_figures)
+    # Data / stats
     - numpy
     - pandas
     - scipy
-    - statsmodels            # Kruskal-Wallis, Wilcoxon, BH correction (scripts/05_figures/*)
+    - statsmodels            # Kruskal-Wallis, Wilcoxon, BH correction
 
-    # HTTP / data fetching (scripts/01_search/*)
+    # HTTP / data fetching
     - requests
 
     # Bioinformatics
     - biopython              # FASTA I/O, sequence utilities
 
-    # Embeddings (scripts/04_embeddings)
-    - fair-esm               # ESM-1b / 2 protein language model
+    # Embeddings
+    - esm               # ESM-1b / 2 protein language model
     - torch                  # ESM dependency
     - torchvision            # torch ecosystem
 
-    # Dimensionality reduction (scripts/04_embeddings/*)
+    # Dimensionality reduction
     - scikit-learn           # t-SNE (perplexity=30, n_iter=1000)
     - umap-learn             # UMAP (n_neighbors=15, min_dist=0.1)
 
-    # Figures (scripts/05_figures)
+    # Figures
     - matplotlib
     - seaborn
+    
+    # ProstT5
+    - sentencepiece          # ProstT5 tokenizer
+    - transformers>=4.40     # ProstT5 / ESM model loading
+    # NOTE: torch must be installed manually after env creation for CUDA support:
+    #- torch>=2.6 --index-url https://download.pytorch.org/whl/cu124  # ProstT5 requires >=2.6 (CVE-2025-32434)
