@@ -1,0 +1,33 @@
+12:15:17 [INFO]   21,466 proteomes loaded
+12:15:17 [INFO]   class1_sequences.fasta: 4,166 unique proteome IDs
+12:15:17 [INFO]   class2_sequences.fasta: 17,183 unique proteome IDs
+12:15:17 [INFO] Class 1: 4,166 / 21,466 proteomes harbor this class
+12:15:17 [INFO] Class 2: 17,183 / 21,466 proteomes harbor this class
+12:15:18 [INFO] Table 1 → /sci/labs/itamarsi/ophirmil12/FumaraseEvolution/results/stats/table1_class1.csv
+12:15:18 [INFO] Table 2 → /sci/labs/itamarsi/ophirmil12/FumaraseEvolution/results/stats/table2_class2.csv
+
+Table 1 - Class I
+    Taxonomic group  # Proteomes  # Harboring  % Harboring  % Lacking
+                All        21466         4166        19.41      80.59
+           Bacteria        17397         3929        22.58      77.42
+            Archaea          632            0         0.00     100.00
+              Fungi         1494            0         0.00     100.00
+            Animals         1277           81         6.34      93.66
+             Plants          416           19         4.57      95.43
+          Protozoal           63           37        58.73      41.27
+              Algae          230          115        50.00      50.00
+Alphaproteobacteria         2484          627        25.24      74.76
+                SAR          166           90        54.22      45.78
+
+Table 2 - Class II
+    Taxonomic group  # Proteomes  # Harboring  % Harboring  % Lacking
+                All        21466        17183        80.05      19.95
+           Bacteria        17397        13741        78.98      21.02
+            Archaea          632          321        50.79      49.21
+              Fungi         1494         1419        94.98       5.02
+            Animals         1277         1190        93.19       6.81
+             Plants          416          382        91.83       8.17
+          Protozoal           63           20        31.75      68.25
+              Algae          230          145        63.04      36.96
+Alphaproteobacteria         2484         2352        94.69       5.31
+                SAR          166           92        55.42      44.58
