@@ -1,0 +1,25 @@
+## 03_3di dependencies
+
+Requires Python 3.11 and a CUDA-capable GPU.
+
+### Install
+
+pip install "torch>=2.6" --index-url https://download.pytorch.org/whl/cu124
+pip install transformers sentencepiece
+
+### Model cache
+
+The ProstT5 model (~11GB) is downloaded from HuggingFace on first run.
+Set HF_HOME to avoid it landing in the conda directory:
+
+    export HF_HOME="$PROJECT_ROOT/.hf_cache"
+    export HF_HUB_DISABLE_XET=1   # disables unstable xet transfer protocol
+
+The cache is reused across runs — no re-download needed after the first job.
+
+### Notes
+
+- torch cu124 requires CUDA driver >= 12.4 (In Phoenix HUJI SLURM cluster: use --gres=gg:g4:1)
+- If the cluster only has cu121, upgrade to cu124 anyway — the driver is usually
+  newer than the toolkit and will be compatible
+- transformers must be >= 4.40 for AutoModelForSeq2SeqLM to load ProstT5 correctly

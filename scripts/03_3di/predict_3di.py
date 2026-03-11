@@ -14,10 +14,15 @@ AA sequences must be UPPER-CASE. 3Di output is LOWER-CASE (Foldseek convention).
 Rare/ambiguous amino acids (U, Z, O, B) are replaced with X before tokenisation.
 
 Dependencies:
-    pip install torch>=2.6 transformers sentencepiece
+    pip install "torch>=2.6" --index-url https://download.pytorch.org/whl/cu124
+    pip install transformers sentencepiece
 
-    # GPU (strongly recommended):
-    pip install torch>=2.6 --index-url https://download.pytorch.org/whl/cu124
+    Requires CUDA driver >= 12.4 (Phoenix: --gres=gg:g4:1).
+    See scripts/03_3di/README for full installation notes.
+
+Environment:
+    export HF_HOME="$PROJECT_ROOT/.hf_cache"   # cache model outside conda dir
+    export HF_HUB_DISABLE_XET=1                # disable unstable xet protocol
 
 Usage:
     # Both classes (default paths from config):
@@ -40,14 +45,16 @@ Output:
 
     Headers are preserved from input FASTA.
     Sequences are lowercase 3Di tokens (a-y alphabet, 20 tokens).
+    Sequences exceeding 1000 aa are skipped (ProstT5 hard limit).
 
 Notes:
-    - Model (~11GB) is downloaded from HuggingFace on first run and cached at
-      $HF_HOME (set this to $PROJECT_ROOT/.hf_cache to avoid conda dir bloat).
-    - Sequences longer than 1000 aa are skipped with a warning.
+    - Model (~11GB) is downloaded on first run and cached at $HF_HOME.
+      Subsequent runs load from cache — no re-download needed.
     - Checkpoint written after each batch — safe to kill and resume.
-    - max_residues=4000 per batch (sum of all sequence lengths) to avoid OOM.
-      Reduce --batch-size if you still get OOM errors.
+      Checkpoint is removed automatically on successful completion.
+    - Batching respects both --batch-size and max_residues=4000 (sum of
+      sequence lengths per batch) to avoid GPU OOM. Sequences are sorted
+      longest-first to minimise padding waste.
 """
 
 import sys
@@ -213,7 +220,7 @@ def predict_3di_batch(sequences: list[str],
         # Decode output tokens, skip special tokens, remove spaces, lowercase
         decoded = tokenizer.decode(outputs[i], skip_special_tokens=True)
         tdi_seq = decoded.replace(" ", "").lower()
-        
+
         results.append(tdi_seq)
 
     return results
