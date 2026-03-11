@@ -29,7 +29,7 @@ URLS = {
     "mfs_transporter.fasta": (
         "https://rest.uniprot.org/uniprotkb/stream"
         "?query=family:%22major+facilitator+superfamily%22+AND+reviewed:true"
-        "&format=fasta&size=500"
+        "&format=fasta"
     ),
 }
 

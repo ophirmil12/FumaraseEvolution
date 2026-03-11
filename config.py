@@ -4,6 +4,9 @@ from pathlib import Path
 #  Central Configuration
 # ============================================================
 
+# TODO: search all files for "TODO", then remove environment-specific settings
+#  e.g. paths (ophirmil12, dror...), mails, etc.
+
 # The root directory of the project
 ROOT = Path(__file__).parent
 
