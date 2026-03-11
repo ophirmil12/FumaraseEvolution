@@ -2,6 +2,7 @@
 #SBATCH --job-name=fumarase_mmseqs
 #SBATCH --output=slurm_out/mmseqs_%j.out
 #SBATCH --error=slurm_out/mmseqs_%j.err
+#SBATCH --killable
 #SBATCH --time=12:00:00
 #SBATCH --mem=128G
 #SBATCH --cpus-per-task=8

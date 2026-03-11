@@ -24,6 +24,7 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+slurm_out/
 
 # Conda
 envs/fumaraseevo/

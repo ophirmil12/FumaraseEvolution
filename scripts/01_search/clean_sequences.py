@@ -1,16 +1,15 @@
 """
-clean_sequences.py - Remove fragments and contaminants from fumarase FASTA files.
+clean_sequences.py - Remove contaminants from fumarase FASTA files.
 
 Operates IN-PLACE on:
     data/processed/class1_sequences.fasta
     data/processed/class2_sequences.fasta
 
 Filters applied to BOTH classes:
-    1. Fragment tag       - header contains "(Fragment)"
-    2. Too short         - sequence < MIN_LENGTH aa (default 100)
-    3. Domain-only hits  - N-terminal or C-terminal domain fragments annotated
+    1. Too short         - sequence < MIN_LENGTH aa (default 100)
+    2. Domain-only hits  - N-terminal or C-terminal domain fragments annotated
                            as such ("N-terminal domain-containing", "C-terminal
-                           domain-containing") but lacking a "(Fragment)" tag
+                           domain-containing")
 
 Class I only:
     4. TRZ/ATZ family   - triazine hydrolases, same Fe-S superfamily, wrong enzyme
@@ -59,8 +58,7 @@ MIN_LENGTH = 100   # aa; below this almost certainly a fragment or domain-only h
 
 # Applied to both classes
 SHARED_EXCLUDE = [
-    # Domain-only annotations that lack a (Fragment) tag — these are partial
-    # sequences that would distort alignment and entropy calculations.
+    # these are partial sequences that would distort alignment and entropy calculations.
     # Full fumarases are never annotated as "N-terminal domain-containing" or
     # "C-terminal domain-containing" in UniProt.
     "N-terminal domain-containing protein",
@@ -178,23 +176,18 @@ def filter_records(
     for header, seq in records:
         seq_clean = seq.replace("-", "").replace(".", "")
 
-        # 1. Fragment tag in header
-        if "(Fragment)" in header:
-            removed["(Fragment) tag"] += 1
-            continue
-
-        # 2. Sequence too short
+        # 1. Sequence too short
         if len(seq_clean) < min_length:
             removed[f"too short (<{min_length} aa)"] += 1
             continue
 
-        # 3. UPI-only header (class2 only — class1 headers already validated
+        # 2. UPI-only header (class2 only — class1 headers already validated
         #    by extract_sequences.py; class2 may still carry stragglers)
         if class_key == "class2" and is_upi_only(header):
             removed["UPI-only header"] += 1
             continue
 
-        # 4–9. Exclusion patterns
+        # 3–8. Exclusion patterns
         matched_pattern = None
         for pattern in exclude:
             if pattern in header:
@@ -276,7 +269,7 @@ def main():
                       args.dry_run, args.min_length)
 
     if not args.dry_run:
-        log.info("Done. Run scripts/02_align/run_mafft.sh next.")
+        log.info("Done.")
 
 
 if __name__ == "__main__":

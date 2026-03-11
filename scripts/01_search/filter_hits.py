@@ -275,7 +275,7 @@ def process_class(fumarase_class: int, metadata: pd.DataFrame) -> list[dict]:
             "proteome_id":    proteome_id,
             "query_id":       query_id,
             "fumarase_class": fumarase_class,
-            "hit_id":         str(row["query_id"]).replace(class_prefix, "", 1),
+            "hit_id":         str(row["hit_id"]),
             "identity":       round(float(row["identity"]), 4),
             "alignment_len":  int(row["alignment_len"]),
             "mismatches":     int(row["mismatches"]),

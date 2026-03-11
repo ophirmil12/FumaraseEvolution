@@ -51,7 +51,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-LIN = "Taxonomic lineage"
+LIN = "taxonomic_lineage"
 
 
 # ---------------------------------------------------------------------------
@@ -112,14 +112,14 @@ def load_metadata(path: Path) -> pd.DataFrame:
     log.info(f"Loading metadata from {path}")
     df = pd.read_csv(path, sep="\t", dtype=str).fillna("")
     df.columns = df.columns.str.strip()
-    required = {"Proteome Id", LIN}
+    required = {"proteome_id", LIN}
     missing = required - set(df.columns)
     if missing:
         raise ValueError(
             f"Metadata TSV missing columns: {missing}\n"
             f"Found: {list(df.columns)}"
         )
-    df = df.set_index("Proteome Id")
+    df = df.set_index("proteome_id")
     log.info(f"  {len(df):,} proteomes loaded")
     return df
 
