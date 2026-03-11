@@ -4,6 +4,9 @@ data/raw/
 data/processed/
 data/external/
 
+# Results - folder that are too large for git; see Suplemantery Information
+results/alignments/
+
 # IQ-TREE checkpoint files
 *.ckp.gz
 *.bkl

@@ -1,0 +1,5 @@
+label,n_sequences,subsampled,alignment_length,reference_length,mean_entropy,mean_site_entropy,n_functional_sites,pct_highly_conserved
+Class I,4166,False,3651,548,0.9873,0.0,3,41.06
+Class II,17183,False,20151,467,1.4976,0.0102,4,22.06
+Baseline (conserved),786,False,376,234,1.4989,,0,22.65
+Baseline (divergent),2096,False,7904,446,3.2095,,0,0.0
