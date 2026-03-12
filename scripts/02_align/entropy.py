@@ -64,7 +64,7 @@ import pandas as pd
 
 PROJECT_ROOT = Path(__file__).parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
-from config import PATHS, ENTROPY, QUERIES
+from config import PATHS, ENTROPY, QUERIES, FUNCTIONAL_SITES
 
 logging.basicConfig(
     level=logging.INFO,
@@ -214,20 +214,6 @@ def filter_to_reference(scores: np.ndarray, ref_seq: str) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # Functional site mapping
 # ---------------------------------------------------------------------------
-
-# Known catalytic residues from PDB annotations (0-indexed in reference sequence)
-# Class I  (P0AC33, FumA): [4Fe-4S] cluster coordinating cysteines
-# Class II (P05042, FumC): active site residues
-FUNCTIONAL_SITES = {
-    "class1": {
-        "name":     "Class I (P0AC33)",
-        "residues": [104, 223, 317],          # Cys105, Cys224, Cys318
-    },
-    "class2": {
-        "name":     "Class II (P05042)",
-        "residues": [187, 317, 323, 330],     # His188, Ser318, Lys324, Glu331
-    },
-}
 
 
 def map_sites_to_reference(residue_positions: list[int],

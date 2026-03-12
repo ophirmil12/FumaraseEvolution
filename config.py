@@ -37,6 +37,20 @@ QUERIES = {
     },
 }
 
+# Known catalytic residues from PDB annotations (0-indexed in reference sequence)
+# Class I  (P0AC33, FumA): [4Fe-4S] cluster coordinating cysteines
+# Class II (P05042, FumC): active site residues
+FUNCTIONAL_SITES = {
+    "class1": {
+        "name":     "Class I (P0AC33)",
+        "residues": [104, 223, 317],          # Cys105, Cys224, Cys318
+    },
+    "class2": {
+        "name":     "Class II (P05042)",
+        "residues": [187, 317, 323, 330],     # His188, Ser318, Lys324, Glu331
+    },
+}
+
 # --- MMseqs2 filtering thresholds ---
 MMSEQS2 = {
     "evalue_cutoff":     1e-3,   # 0.001

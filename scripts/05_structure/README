@@ -1,0 +1,23 @@
+Files in this part should run as follows:
+Open PyMOL, then run the script with the command:
+
+```
+run /path/to/pymol_script.py
+```
+
+This script will set up a PyMOL scene for the structure, and save the session in the specified directory.
+Make sure to adjust the path to the script as needed.
+
+Other option is to run the script directly from the command line using:
+
+```
+python scripts/pymol_script.py
+```
+
+To install PyMOL, you can use the following command:
+
+```
+conda install -c conda-forge pymol-open-source  
+```
+
+No need to run the script in a cluster, unless high-resolution rendering is desired.
