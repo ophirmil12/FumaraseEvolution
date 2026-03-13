@@ -1,0 +1,26 @@
+## 04_identity
+
+This folder contains scripts for creating the identity matrix.
+For creating the matrix using MMseqs2, run:
+
+```bash
+mmseqs easy-search \
+    "$FASTA" \
+    "$FASTA" \
+    /dev/stdout \
+    "$TMP" \
+    --threads "$SLURM_CPUS_PER_TASK" \
+    --max-seqs "$N_SEQS" \
+    -s 7.5 \
+    --k-score 80 \
+    -e 100 \
+    --min-seq-id 0 \
+    --format-output "query,target,fident,alnlen,qlen,tlen" \
+| awk -F'\t' '$1 < $2' \
+> "$OUT"
+```
+
+Also see the SLURM script `allvsall_identity.slurm` for an example of how to run the above command on a cluster.
+
+Then, run the `stats_identity.py` script to calculate the statistics of the identity matrix,
+including the mean, median [between phylogenetic groups], and other statistics.

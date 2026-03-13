@@ -1,0 +1,7 @@
+group_1,group_2,n_1,n_2,U_stat,p_raw,effect_r,p_adj_BH,significant_0.05,significant_0.01
+Euk-Alpha,Euk-OtherBacteria,7340571,35544994,226697216636722.47,0.0,-0.7377,0.0,True,True
+Euk-Alpha,Euk-Archaea,7340571,1001817,7122826036298.5,0.0,-0.9372,0.0,True,True
+Euk-Alpha,Alpha-OtherBac,7340571,26786723,175856464574329.5,0.0,-0.7887,0.0,True,True
+Euk-OtherBacteria,Euk-Archaea,35544994,1001817,23124502036873.0,0.0,-0.2988,0.0,True,True
+Euk-OtherBacteria,Alpha-OtherBac,35544994,26786723,498753985110294.0,0.0,-0.0477,0.0,True,True
+Euk-Archaea,Alpha-OtherBac,1001817,26786723,9499299425141.0,0.0,0.292,0.0,True,True
