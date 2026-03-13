@@ -34,3 +34,6 @@ envs/fumaraseevo/
 
 # Hugging Face cache
 .hf_cache/
+
+# PyMOL cache
+1yfe.cif

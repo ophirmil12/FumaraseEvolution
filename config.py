@@ -75,8 +75,9 @@ ENTROPY = {
 # --- Embeddings ---
 # TODO: Revise that (if wants to import esm, maybe use ESM2)
 ESM = {
-    "model": "esm1_t6_43M_UR50S",  # ESM-1b
-    "layer": 6,                     # mean pooling layer
+    "model": "esm1_t6_43M_UR50S",    # ESM-1b
+    "layer": 6,                      # mean pooling layer
+    "embedding_size": 1280,          # ESM-1b embedding dimension
 }
 
 TSNE = {
