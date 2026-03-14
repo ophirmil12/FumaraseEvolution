@@ -241,7 +241,7 @@ def plot_static(df: pd.DataFrame,
         color = COLORS.get(group, DEFAULT_COLOR)
         kwargs = dict(
             c     = color,
-            s     = 8,
+            s     = 20,     # dots size
             alpha = 0.7,
             linewidths = 0,
             label = group,
@@ -273,8 +273,8 @@ def plot_static(df: pd.DataFrame,
     ax.legend(
         handles=handles,
         title="Taxonomic group",
-        title_fontsize=9,
-        fontsize=8,
+        title_fontsize=14,       # legend title font size
+        fontsize=12,             # legend entry font size
         loc="best",
         framealpha=0.9,
         edgecolor="#cccccc",

@@ -102,7 +102,7 @@ FIGURES = {
 COLORS = {
     "Eukaryote":            "#1f77b4",
     "Alpha-proteobacteria": "#ff7f0e",
-    "Bacteria":             "#7f7f7f",      # A6CEE3, TODO?
+    "Bacteria":             "#A6CEE3",
     "Archaea":              "#d62728",
     # #49306B, purple
 }
