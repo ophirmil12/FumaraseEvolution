@@ -1,0 +1,50 @@
+# chimerax_class2_tetramer.cxc
+# Class II fumarase tetramer (PDB: 1YFE) — ChimeraX command script
+# Active site: His188, Ser318, Lys324, Glu331
+#
+# Run headless:
+#   chimerax --nogui --script chimerax_class2_tetramer.cxc
+# Run interactively:
+#   open chimerax_class2_tetramer.cxc   (from ChimeraX command line)
+
+# --- 1. Fetch structure and expand to biological assembly ---
+open 1YFE
+# Show all 4 chains as the biological tetramer
+sym #1 assembly 1 newModel false
+
+# --- 2. Clean up: remove solvent ---
+delete solvent
+
+# --- 3. Visual styling ---
+set bgColor white
+cartoon style width 1.0 thickness 0.3
+color #1/A palemagenta
+color #1/B lightblue
+color #1/C palegreen
+color #1/D wheat
+
+# --- 4. Active site residues (all chains) ---
+select #1:187,317,323,330
+style sel sphere
+size sel atomRadius 1.4
+color sel orangered
+color sel byhet
+~select
+
+# --- 5. Surface on active site pocket ---
+surface #1:187,317,323,330 enclose #1:187,317,323,330
+transparency 40 #1:187,317,323,330
+
+# --- 6. Publication lighting ---
+lighting soft
+graphics silhouettes true width 1.5
+
+# --- 7. Adjust view ---
+view #1
+zoom 0.85
+
+# --- 8. Save session ---
+save STRUCTURE_DIR/1YFE_analysis.cxs
+
+# --- 9. Export image ---
+save STRUCTURE_DIR/1YFE_final_render.png width 2400 height 1800 supersample 3 transparentBackground false
