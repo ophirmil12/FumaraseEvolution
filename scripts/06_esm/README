@@ -1,0 +1,18 @@
+# ESM Embeddings and Plotting
+
+This part computes ESM-2 mean embeddings from FASTA files and generates 2D/3D plots (t-SNE, UMAP, PCA).
+
+## Files
+- `esm_factory.py` — build and save embeddings (`.pt`)
+- `esm_plot.py` — reduce dimensions and create PNG + HTML plots
+- `cluster/esm_plot.slurm` — cluster job to run the full workflow
+
+## Run (cluster)
+From project root:
+```bash
+sbatch cluster/esm_plot.slurm
+```
+
+## Outputs
+- Embeddings: `data/processed/embeddings/*.pt`
+- Plots: `results/embeddings/`

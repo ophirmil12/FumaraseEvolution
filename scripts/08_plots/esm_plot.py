@@ -11,7 +11,7 @@ Metadata (organism name) is loaded from proteome_metadata.tsv.
 
 Usage:
     # Typically called from a higher-level script after ESMFactory.get_mean_embeddings()
-    from scripts.05_esm.esm_plot import plot_embeddings
+    from scripts.08_plots.esm_plot import plot_embeddings
 
     embeddings = factory.get_mean_embeddings(sequence_data)
     plot_embeddings(
@@ -24,7 +24,7 @@ Usage:
     )
 
     # Or run directly:
-    python scripts/05_esm/esm_plot.py \\
+    python scripts/08_plots/esm_plot.py \\
         --embeddings data/processed/class1_embeddings.pt \\
         --fasta      data/processed/class1_sequences.fasta \\
         --method     tsne \\
