@@ -6,6 +6,9 @@ data/external/
 
 # Results - folder that are too large for git; see Suplemantery Information
 results/alignments/
+results/stats/identity_pairs_annotated.tsv
+results/structure/*.png
+results/structure/*.mp4
 
 # IQ-TREE checkpoint files
 *.ckp.gz

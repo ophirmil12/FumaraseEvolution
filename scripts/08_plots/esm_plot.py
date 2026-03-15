@@ -75,7 +75,7 @@ def assign_group(lineage: str) -> str:
     if not isinstance(lineage, str) or not lineage.strip():
         return "Other"
     if "Alphaproteobacteria" in lineage:
-        return "Alpha-proteobacteria"
+        return "Alphaproteobacteria"
     if _re.search(r",\s*Bacteria,", lineage):
         return "Bacteria"
     if _re.search(r",\s*Archaea,", lineage):

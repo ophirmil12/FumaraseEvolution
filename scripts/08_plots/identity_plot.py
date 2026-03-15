@@ -65,14 +65,14 @@ GROUP_ORDER = [
 ]
 
 GROUP_LABELS = {
-    "Euk-Alpha":          "Alpha-proteobacteria\u2013Eukaryote",
+    "Euk-Alpha":          "Alphaproteobacteria\u2013Eukaryote",
     "Euk-OtherBacteria":  "Other Bacteria\u2013Eukaryote",
     "Euk-Archaea":        "Eukaryote\u2013Archaea",
 }
 
 # Map comparison group names -> COLORS key
 GROUP_COLOR_KEY = {
-    "Euk-Alpha":         "Alpha-proteobacteria",
+    "Euk-Alpha":         "Alphaproteobacteria",
     "Euk-OtherBacteria": "Bacteria",
     "Euk-Archaea":       "Archaea",
 }
