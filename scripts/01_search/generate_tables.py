@@ -63,15 +63,26 @@ def define_groups(df: pd.DataFrame) -> list[tuple[str, pd.Series]]:
     Return (label, boolean_mask) pairs for each taxonomic group.
     """
     lin = df[LIN]
+    
+    # Pre-calculate masks for logic reuse
+    mask_bacteria = lin.str.contains(r",\s*Bacteria,", regex=True, na=False)
+    mask_alpha    = lin.str.contains("Alphaproteobacteria", na=False)
+
     return [
         ("All",
             pd.Series(True, index=df.index)),
 
-        ("Bacteria",
-            lin.str.contains(r",\s*Bacteria,", regex=True, na=False)),
+        ("Other Bacteria",
+            mask_bacteria & ~mask_alpha),
+
+        ("Alphaproteobacteria",
+            mask_alpha),
 
         ("Archaea",
             lin.str.contains(r",\s*Archaea,", regex=True, na=False)),
+
+        ("Eukaryota",
+            lin.str.contains(r",\s*Eukaryota,", regex=True, na=False)),
 
         ("Fungi",
             lin.str.contains("Fungi", na=False)),
@@ -82,23 +93,16 @@ def define_groups(df: pd.DataFrame) -> list[tuple[str, pd.Series]]:
         ("Plants",
             lin.str.contains("Viridiplantae", na=False)),
 
-        # Protozoal: Excavata-equivalent groups + Amoebozoa
         ("Protozoal",
             lin.str.contains(
                 "Discoba|Metamonada|Amoebozoa|Parabasalia|Fornicata",
                 na=False)),
 
-        # Algae: SAR (excl. Metazoa) + Rhodophyta + Haptophyta +
-        #        non-embryophyte Viridiplantae (green algae)
         ("Algae",
             (lin.str.contains(r"\bSar\b", na=False) & ~lin.str.contains("Metazoa", na=False)) |
             lin.str.contains("Rhodophyta|Haptophyta|Cryptophyceae", na=False) |
             (lin.str.contains("Viridiplantae", na=False) & ~lin.str.contains("Embryophyta", na=False))),
 
-        ("Alphaproteobacteria",
-            lin.str.contains("Alphaproteobacteria", na=False)),
-
-        # SAR: exact word match to avoid partial hits
         ("SAR",
             lin.str.contains(r"\bSar\b", na=False)),
     ]
