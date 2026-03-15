@@ -1,27 +1,137 @@
-# TODO: turn all of this into ChimeraX
-# TODO: run all
+# Class I
 
-
-Files in this part should run as follows:
-Open PyMOL, then run the script with the command:
+No PDB available for Class I, So we take the AlphaFold model of the Class I structure:
 
 ```
-run /path/to/pymol_script.py
+open https://alphafold.ebi.ac.uk/files/AF-P0AC33-F1-model_v6.pdb
 ```
 
-This script will set up a PyMOL scene for the structure, and save the session in the specified directory.
-Make sure to adjust the path to the script as needed.
-
-Other option is to run the script directly from the command line using:
-
+Some setup:
 ```
-python scripts/pymol_script.py
+set bgColor white
+lighting simple
 ```
 
-To install PyMOL, you can use the following command:
+Selecting the active sites:
 
 ```
-conda install -c conda-forge pymol-open-source  
+select #1:105,224,318
 ```
 
-No need to run the script in a cluster, unless high-resolution rendering is desired.
+### Coloring
+| chain | active sites |
+| ------|--------------|
+| #afa08b | #ab752a |
+
+```
+color #1 #afa08b
+color sel #ab752a
+```
+
+### Active sites
+
+Show the atoms of the active sites and present them as spheres:
+
+```
+show sel
+style sel spheres
+```
+
+Adding labels to the active sites:
+
+```
+label sel text "{0.name}{0.number}" color black height 2
+```
+
+Make 185-193 transparent to get a better view of the active sites:
+
+```
+transparency #1:185-193 80 all
+```
+
+Removing the selection:
+```
+~sel
+```
+
+
+# Class II
+
+We take the AlphaFold model (to match Class I, and highlight correct active sites) of the Class II structure. Before that, we take the 1YFE PDB structure so superimpose the AlphaFold monomer 4 times on it:
+
+```
+open 1YFE
+sym #1 assembly 1 newModel true
+```
+
+Some setup:
+```
+set bgColor white
+lighting simple
+```
+
+The AlphaFold model:
+
+```
+open https://alphafold.ebi.ac.uk/files/AF-P05042-F1-model_v6.pdb
+```
+
+Getting the full tetrameric structure:
+
+```
+mmaker #3 to #2.1
+combine #3 name AF_B; mmaker #4 to #2.2
+combine #3 name AF_C; mmaker #5 to #2.3
+combine #3 name AF_D; mmaker #6 to #2.4
+```
+
+Hide the templates:
+```
+hide #1,2 models
+```
+
+### Coloring
+
+| chain | active sites |
+|-------|--------------|
+| #c8a5b6 | #cc56ca |
+| #b68a8a | #bf3f3f |
+| #7c926d | #4a911b |
+| #567275 | #207079 |
+
+```
+color #3 #c8a5b6
+color #3:188,318,324,331 #cc56ca
+
+color #4 #b68a8a
+color #4:188,318,324,331 #bf3f3f
+
+color #5 #7c926d
+color #5:188,318,324,331 #4a911b
+
+color #6 #567275
+color #6:188,318,324,331 #207079
+```
+
+Hide 2 of the chains to get a better view of the active sites:
+
+```
+transparency #6 80 all
+transparency #3 80 all
+```
+
+Or use `hide` command to hide the chains.
+
+### Active sites
+Show the atoms of the active sites and present them as spheres:
+
+```
+show #3-6:188,318,324,331
+style #3-6:188,318,324,331 sphere
+```
+
+Adding labels to the active sites:
+
+```
+label #3-6:188,318,324,331 text "{0.name}{0.number}" color black height 2
+```
