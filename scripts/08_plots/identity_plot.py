@@ -205,7 +205,7 @@ def plot_figure(desc: pd.DataFrame,
 
     # Precompute all_vals and y_n before loop
     all_vals = np.concatenate([v for v in data_full.values() if len(v) > 0])
-    y_n      = max(0, np.percentile(all_vals, 0.01) - 4)
+    y_n      = max(0, np.percentile(all_vals, 0.01))        # N= text position y axis
 
     # --- Draw violin + scatter + labels per group ---
     for pos, group in zip(positions, groups):
@@ -245,7 +245,7 @@ def plot_figure(desc: pd.DataFrame,
         jitter = rng.uniform(-0.12, 0.12, size=n_scatter)
         ax.scatter(
             pos + jitter, scatter_vals,
-            color=color, alpha=0.15, s=3, linewidths=0,
+            color=color, alpha=0.3, s=3, linewidths=0,
             zorder=2, rasterized=True,
         )
 
@@ -257,14 +257,14 @@ def plot_figure(desc: pd.DataFrame,
 
         # N= label
         ax.text(pos, y_n, f"N = {len(full_vals):,}",
-                ha="center", va="top", fontsize=9, color="#333333")
+                ha="center", va="top", fontsize=9, color="#1f1f1f")
 
     # --- Significance brackets ---
     y_max        = np.percentile(all_vals, 99.9)
-    bracket_base = y_max + 3
+    bracket_base = y_max + 6
 
     bracket_pairs   = [(0, 1), (0, 2), (1, 2)]
-    bracket_heights = [bracket_base, bracket_base + 6, bracket_base + 12]
+    bracket_heights = [bracket_base, bracket_base + 4, bracket_base + 8]
 
     for (i, j), y in zip(bracket_pairs, bracket_heights):
         g1, g2 = groups[i], groups[j]
@@ -278,7 +278,7 @@ def plot_figure(desc: pd.DataFrame,
     ax.set_ylabel("Pairwise Sequence Identity (%)", fontsize=11, labelpad=8)
     ax.set_xlim(-0.6, len(groups) - 0.4)
 
-    y_top = bracket_base + 12 + 6
+    y_top = bracket_base + 8 + 4
     ax.set_ylim(
         max(0, np.percentile(all_vals, 0.01) - 5),
         y_top,
