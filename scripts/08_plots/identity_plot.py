@@ -256,7 +256,7 @@ def plot_figure(desc: pd.DataFrame,
                 fontweight="bold", zorder=5)
 
         # N= label
-        ax.text(pos, y_n, f"N = {len(full_vals):,}",
+        ax.text(pos, y_n, f"N = {len(full_vals) / 1000000:.2f}M",
                 ha="center", va="top", fontsize=9, color="#1f1f1f")
 
     # --- Significance brackets ---

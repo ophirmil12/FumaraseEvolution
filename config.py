@@ -101,7 +101,7 @@ FIGURES = {
 # --- Taxonomic group color palette ---
 COLORS = {
     "Eukaryote":            "#1f77b4",
-    "Alpha-proteobacteria": "#ff7f0e",
+    "Alphaproteobacteria": "#ff7f0e",
     "Bacteria":             "#A6CEE3",
     "Archaea":              "#d62728",
     # #49306B, purple
