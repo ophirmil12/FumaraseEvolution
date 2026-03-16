@@ -73,11 +73,10 @@ ENTROPY = {
 }
 
 # --- Embeddings ---
-# TODO: Revise that (if wants to import esm, maybe use ESM2)
 ESM = {
-    "model": "esm1_t6_43M_UR50S",    # ESM-1b
-    "layer": 6,                      # mean pooling layer
-    "embedding_size": 1280,          # ESM-1b embedding dimension
+    "model": "esm2_t33_650M_UR50D",   # ESM-2 model variant
+    "layer": 33,                      # mean pooling layer
+    "embedding_size": 1280,           # dimensionality of the chosen ESM model
 }
 
 TSNE = {
@@ -101,7 +100,7 @@ FIGURES = {
 # --- Taxonomic group color palette ---
 COLORS = {
     "Eukaryote":            "#1f77b4",
-    "Alpha-proteobacteria": "#ff7f0e",
+    "Alphaproteobacteria": "#ff7f0e",
     "Bacteria":             "#A6CEE3",
     "Archaea":              "#d62728",
     # #49306B, purple
