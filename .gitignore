@@ -9,6 +9,7 @@ results/alignments/
 results/stats/identity_pairs_annotated.tsv
 results/structure/*.png
 results/structure/*.mp4
+results/embeddings/*.html
 
 # IQ-TREE checkpoint files
 *.ckp.gz

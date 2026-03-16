@@ -241,7 +241,7 @@ def plot_static(df: pd.DataFrame,
         color = COLORS.get(group, DEFAULT_COLOR)
         kwargs = dict(
             c     = color,
-            s     = 20,     # dots size
+            s     = 25,     # dots size
             alpha = 0.7,
             linewidths = 0,
             label = group,
@@ -259,10 +259,10 @@ def plot_static(df: pd.DataFrame,
         ax.set_ylabel(f"{axis_label} 2", fontsize=9, labelpad=4)
         ax.set_zlabel(f"{axis_label} 3", fontsize=9, labelpad=4)
     else:
-        ax.set_xlabel(f"{axis_label} 1", fontsize=10)
-        ax.set_ylabel(f"{axis_label} 2", fontsize=10)
+        ax.set_xlabel(f"{axis_label} 1", fontsize=12)
+        ax.set_ylabel(f"{axis_label} 2", fontsize=12)
 
-    ax.tick_params(labelsize=7)
+    ax.tick_params(labelsize=12)     # size of tick labels
     ax.set_facecolor("#f9f9f9")
 
     # Legend
@@ -270,20 +270,24 @@ def plot_static(df: pd.DataFrame,
         mpatches.Patch(color=COLORS.get(g, DEFAULT_COLOR), label=g)
         for g in sorted(groups_present)
     ]
-    ax.legend(
-        handles=handles,
-        title="Taxonomic group",
-        title_fontsize=14,       # legend title font size
-        fontsize=12,             # legend entry font size
-        loc="best",
-        framealpha=0.9,
-        edgecolor="#cccccc",
-    )
+    # if tsne and class I, don't make a legend:
+    if method == "tsne" and label == "class1":
+        log.info("  Skipping legend for t-SNE Class I")
+    else:
+        ax.legend(
+            handles=handles,
+            title="Taxonomic group",
+            title_fontsize=16,       # legend title font size
+            fontsize=14,             # legend entry font size
+            loc="best",
+            framealpha=0.9,
+            edgecolor="#cccccc",
+        )
 
     class_label = label.replace("_", " ").title()
     plt.title(
         f"ESM-2 Embeddings — {class_label} ({method.upper()} {n_dims}D)",
-        fontsize=12, pad=12,
+        fontsize=16, pad=12,
     )
     plt.tight_layout()
 
