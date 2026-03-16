@@ -60,7 +60,7 @@ MMSEQS2 = {
 
 # --- Phylogeny (IQ-TREE) ---
 IQTREE = {
-    "model_selection":  "TEST",  # ModelFinder auto-selects best model
+    "model_selection":  "TEST",  # ModelFinder auto-selects best model     TODO: identify the specific model chosen by ModelFinder (e.g., LG+G4, JTT+I+G) for both the sequence-based and 3Di-based trees and update the text accordingly.
     "bootstraps":       1000,    # ultrafast bootstrap replicates
     "threads":          "AUTO",
     "gamma_categories": 4,       # +G4
