@@ -1,0 +1,9 @@
+# Clustering the sequences (3Di and AA) into representative sequences for each class.
+# This summary shows the number of sequences before and after clustering, and the percentage retained.
+
+Dataset              Before          After           % Retained     
+-----------------------------------------------------------------
+class1_3di           4162            581             14.0%          
+class1_aa            4166            898             21.6%          
+class2_3di           17151           2329            13.6%          
+class2_aa            17183           6006            35.0%          

@@ -16,6 +16,8 @@ PROJECT_ROOT="/sci/labs/itamarsi/ophirmil12/FumaraseEvolution"
 source /cs/labs/dina/ophirmil12/miniforge3/etc/profile.d/conda.sh
 conda activate project_env
 
+mkdir -p "$PROJECT_ROOT/data/processed/clustered"
+
 # --- MMseqs2 Setup ---
 MMSEQS="$PROJECT_ROOT/tools/mmseqs_avx2/bin/mmseqs"
 
@@ -41,11 +43,27 @@ declare -A INPUTS=(
 )
 
 declare -A SEQ_ID_THRESHOLDS=(
-    ["class1_aa"]=0.94
-    ["class2_aa"]=0.94
+    ["class1_aa"]=0.90
+    ["class2_aa"]=0.90
     ["class1_3di"]=0.96
     ["class2_3di"]=0.96
 )
+
+# Required organisms
+REQUIRED_ORGANISMS=(
+    "Escherichia coli"
+    "Bacillus subtilis"
+    "Mycobacterium tuberculosis"
+    "Giardia intestinalis"
+    "Trichomonas vaginalis"
+    "Entamoeba histolytica"
+    "Saccharomyces cerevisiae"
+    "Arabidopsis thaliana"
+    "Caenorhabditis elegans"
+    "Homo sapiens"
+    "Rattus norvegicus"
+)
+
 
 # --- Run Clustering ---
 for prefix in "${!INPUTS[@]}"; do
@@ -56,7 +74,8 @@ for prefix in "${!INPUTS[@]}"; do
         continue
     fi
 
-    OUT_PREFIX="$PROJECT_ROOT/data/processed/${prefix}_clustered"
+    OUT_PREFIX="$PROJECT_ROOT/data/processed/clustered/${prefix}_clustered"
+    REP_FASTA="${OUT_PREFIX}_rep_seq.fasta"
     TMP_DIR="$PROJECT_ROOT/data/raw/tmp/cluster_tmp_${prefix}"
     mkdir -p "$TMP_DIR"
 
@@ -77,6 +96,20 @@ for prefix in "${!INPUTS[@]}"; do
         --min-seq-id "${SEQ_ID_THRESHOLDS[$prefix]}" \
         -c 0.8
 
+    # --- Ensure Required Organisms are included ---
+    echo "Ensuring required organisms are in $prefix representative set..."
+    for species in "${REQUIRED_ORGANISMS[@]}"; do
+        # Check if species scientific name exists in the representative file
+        if ! grep -qi "OS=$species" "$REP_FASTA"; then
+            # If missing, extract it from the original file and append
+            # This awk script extracts the full FASTA record for the first match
+            echo "  [+] $species missing from reps. Adding from original..."
+            awk -v sp="OS=$species" 'BEGIN{RS=">"; IGNORECASE=1} $0 ~ sp {print ">"$0; exit}' "$FASTA" >> "$REP_FASTA"
+        else
+            echo "  [✓] $species already present."
+        fi
+    done
+
     # Clean up temp files for this run
     rm -rf "$TMP_DIR"
     echo "$prefix clustering finished."
@@ -85,40 +118,53 @@ done
 
 
 # --- Summary Table ---
-cd ./data/processed/
+cd "$PROJECT_ROOT/data/processed/"
 
-printf "%-20s %-15s %-15s %-15s\n" "Dataset" "Before" "After" "% Retained"
-echo "-----------------------------------------------------------------"
+mkdir -p "$PROJECT_ROOT/results/stats"
+OUTPUT_FILE="$PROJECT_ROOT/results/stats/clustering_summary.txt"
 
-for rep in *_clustered_rep_seq.fasta; do
-    # Extract the prefix (e.g., class1_aa or class2_3di)
-    prefix=${rep%_clustered_rep_seq.fasta}
-    
-    # Map the prefix back to your exact original filenames
-    if [[ "$prefix" == *_aa ]]; then
-        # Converts "class1_aa" to "class1_sequences.fasta"
-        base=${prefix%_aa}
-        orig="${base}_sequences.fasta"
-    else
-        # Converts "class1_3di" to "class1_3di.fasta"
-        orig="${prefix}.fasta"
-    fi
+{
+    printf "# Clustering the sequences (3Di and AA) into representative sequences for each class.\n"
+    printf "# This summary shows the number of sequences before and after clustering, and the percentage retained.\n\n"
+    printf "%-20s %-15s %-15s %-15s\n" "Dataset" "Before" "After" "% Retained"
+    echo "-----------------------------------------------------------------"
 
-    # Skip if for some reason the file still isn't found
-    if [ ! -f "$orig" ]; then
-        continue
-    fi
+    # Note: Added 'clustered/' to the search path here
+    for rep in clustered/*_clustered_rep_seq.fasta; do
+        
+        # Strip the directory path and the suffix to get the raw prefix
+        filename=$(basename "$rep")
+        prefix=${filename%_clustered_rep_seq.fasta}
+        
+        # Map the prefix back to your exact original filenames located in data/processed/
+        if [[ "$prefix" == *_aa ]]; then
+            base=${prefix%_aa}
+            orig="${base}_sequences.fasta"
+        else
+            orig="${prefix}.fasta"
+        fi
 
-    # Count the sequences
-    before=$(grep -c "^>" "$orig")
-    after=$(grep -c "^>" "$rep")
-    
-    # Calculate percentage
-    pct=$(awk "BEGIN {printf \"%.1f%%\", ($after/$before)*100}")
-    
-    # Print row
-    printf "%-20s %-15s %-15s %-15s\n" "$prefix" "$before" "$after" "$pct"
-done
+        # Skip if for some reason the file still isn't found
+        if [ ! -f "$orig" ]; then
+            echo "Warning: Could not find original file $orig for $prefix"
+            continue
+        fi
+
+        # Count the sequences
+        before=$(grep -c "^>" "$orig")
+        after=$(grep -c "^>" "$rep")
+        
+        # Calculate percentage
+        pct=$(awk "BEGIN {printf \"%.2f%%\", ($after/$before)*100}")
+        
+        # Print row
+        printf "%-20s %-15s %-15s %-15s\n" "$prefix" "$before" "$after" "$pct"
+    done
+} | tee "$OUTPUT_FILE"
+
+echo "Summary saved to: $OUTPUT_FILE"
 
 
 echo "All clustering runs completed successfully."
+echo "Next steps: Run MAFFT alignments on the clustered representative sequences (don't forget to use the --aamatrix for 3Di datasets!)."
+echo "Then create the trees with the Q matrix for 3Di alignments."
