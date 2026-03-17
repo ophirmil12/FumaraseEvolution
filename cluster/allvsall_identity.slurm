@@ -2,6 +2,7 @@
 #SBATCH --job-name=allvsall_class2
 #SBATCH --out=slurm_out/allvsall_%j.out
 #SBATCH --killable
+#SBATCH --constraint=avx2           # Ensure we run on nodes with AVX2 support for MMseqs2
 #SBATCH --time=24:00:00
 #SBATCH --mem=128G
 #SBATCH --cpus-per-task=16
