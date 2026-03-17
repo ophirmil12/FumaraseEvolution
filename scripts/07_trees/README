@@ -1,0 +1,31 @@
+## 07_trees - 
+
+This directory contains the pipeline for generating phylogenetic trees for Class I and Class II Fumarase sequences using both Amino Acid (AA) and Structural (3Di) data.
+
+## Data
+
+- 'results/alignments/class1_aligned.fasta'
+- 'results/alignments/class2_aligned.fasta'
+
+- 'data/processed/class1_3di_aligned.fasta'
+- 'data/processed/class2_3di_aligned.fasta'
+
+
+## Tree Generation
+
+Trees where generated via the IQTree CLI with the following command:
+
+1. Full trees (AA):
+
+TODO
+
+2. Full trees (3Di):
+
+TODO
+
+3. Sample trees:
+
+TODO
+
+## Run - plot trees
+TODO
