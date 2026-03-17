@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=mafft_align
 #SBATCH --out=slurm_out/mafft_%j.out
-#SBATCH --time=12:00:00
+#SBATCH --time=01:00:00
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
 #SBATCH --killable
