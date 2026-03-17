@@ -21,7 +21,7 @@ dependencies:
   # ---------------------------------------------------------------
   - mmseqs2=18.8cc5c           # homology search
   - mafft                      # multiple sequence alignment
-  - iqtree=2.4.1               # phylogenetic inference (ModelFinder + ultrafast bootstrap)
+  - iqtree=2.4.0               # phylogenetic inference (ModelFinder + ultrafast bootstrap)
 
   # ---------------------------------------------------------------
   # R + phylogeny plotting
