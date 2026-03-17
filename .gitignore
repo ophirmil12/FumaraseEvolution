@@ -1,11 +1,15 @@
 # Data - too large for git; see Suplemantery Information
-data/
 data/raw/
 data/processed/
-data/external/
+data/external/conservation_baseline/
+data/external/*.log
 
 # Results - folder that are too large for git; see Suplemantery Information
 results/alignments/
+results/stats/identity_pairs_annotated.tsv
+results/structure/*.png
+results/structure/*.mp4
+results/embeddings/*.html
 
 # IQ-TREE checkpoint files
 *.ckp.gz

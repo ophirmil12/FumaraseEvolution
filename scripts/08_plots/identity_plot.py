@@ -65,14 +65,14 @@ GROUP_ORDER = [
 ]
 
 GROUP_LABELS = {
-    "Euk-Alpha":          "Alpha-proteobacteria\u2013Eukaryote",
+    "Euk-Alpha":          "Alphaproteobacteria\u2013Eukaryote",
     "Euk-OtherBacteria":  "Other Bacteria\u2013Eukaryote",
     "Euk-Archaea":        "Eukaryote\u2013Archaea",
 }
 
 # Map comparison group names -> COLORS key
 GROUP_COLOR_KEY = {
-    "Euk-Alpha":         "Alpha-proteobacteria",
+    "Euk-Alpha":         "Alphaproteobacteria",
     "Euk-OtherBacteria": "Bacteria",
     "Euk-Archaea":       "Archaea",
 }
@@ -256,7 +256,7 @@ def plot_figure(desc: pd.DataFrame,
                 fontweight="bold", zorder=5)
 
         # N= label
-        ax.text(pos, y_n, f"N = {len(full_vals):,}",
+        ax.text(pos, y_n, f"N = {len(full_vals) / 1000000:.2f}M",
                 ha="center", va="top", fontsize=9, color="#1f1f1f")
 
     # --- Significance brackets ---
