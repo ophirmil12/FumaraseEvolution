@@ -42,17 +42,4 @@ bash "$MAFFT" \
     "$DATA/external/conservation_baseline/mfs_transporter_aligned.fasta" \
     --threads "$THREADS"
 
-# Note: need to run predict_3di.py first to generate the 3Di FASTAs [predict_3di.slurm], then align them with MAFFT
-# --- 3Di sequences (class I) ---
-bash "$MAFFT" \
-    "$DATA/processed/class1_3di.fasta" \
-    "$DATA/processed/class1_3di_aligned.fasta" \
-    --threads "$THREADS"
-
-# --- 3Di sequences (class II) ---
-bash "$MAFFT" \
-    "$DATA/processed/class2_3di.fasta" \
-    "$DATA/processed/class2_3di_aligned.fasta" \
-    --threads "$THREADS"
-
 echo "All alignments complete."
