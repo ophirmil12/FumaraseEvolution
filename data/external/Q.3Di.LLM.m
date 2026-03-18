@@ -1,5 +1,3 @@
-# Use this matrix for 3Di tree construction with IQ-TREE.
-
  0.231961
  0.146826 5.090886
  1.388719 0.532458 0.190308
