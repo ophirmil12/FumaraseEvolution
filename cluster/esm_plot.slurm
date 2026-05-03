@@ -12,8 +12,8 @@
 set -euo pipefail
 mkdir -p slurm_out
 
-PROJECT_ROOT="/sci/labs/itamarsi/ophirmil12/FumaraseEvolution"
-source /cs/labs/dina/ophirmil12/miniforge3/etc/profile.d/conda.sh
+PROJECT_ROOT="./FumaraseEvolution"
+source ./miniforge3/etc/profile.d/conda.sh
 conda activate project_env
 
 export HF_HOME="$PROJECT_ROOT/.hf_cache"
