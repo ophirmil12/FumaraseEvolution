@@ -72,7 +72,7 @@ if(missing_tips > 0) {
 
 # --- Plotting ---
 p <- ggtree(tree_ultra, layout = "circular") %<+% metadata +
-  geom_tree(aes(color = Group), size = 0.6) +
+  geom_tree(aes(color = Group), linewidth = 0.6) +
   scale_color_manual(values = group_colors, guide = "none", na.translate = FALSE) +
   new_scale_fill() +
   geom_fruit(
@@ -101,5 +101,10 @@ p <- ggtree(tree_ultra, layout = "circular") %<+% metadata +
     plot.margin = margin(10, 10, 10, 10)
   )
 
-ggsave(output_file, plot = p, width = 10, height = 10, dpi = dpi)
+# Ensure the output directory exists
+if (!dir.exists(dirname(output_file))) {
+  dir.create(dirname(output_file), recursive = TRUE)
+}
+
+ggsave(output_file, plot = p, width = 12, height = 12, dpi = dpi)
 cat("Done! Tree for: ", tree_file, " saved to:", output_file, "\n")
