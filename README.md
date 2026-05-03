@@ -1,8 +1,7 @@
 # FumaraseEvolution
 
-This repository contains the code, analysis pipeline, and partial results for the paper: **"Evolution of Fumarases (Class I and II): origin, function and subcellular targeting"** by O. Miller, L. Carmel, and O. Pines.
+This repository contains the code, analysis pipeline, and partial results for the paper: **"Evolution of Fumarases (Class I and II): origin, function and subcellular targeting"** by O. Miller, D. Jacobi, L. Carmel, and O. Pines.
 
-TODO: add Dror when Ophry adds him to the author list.
 
 
 ## 📂 Repository Structure
