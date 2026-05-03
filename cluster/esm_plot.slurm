@@ -6,8 +6,7 @@
 #SBATCH --mem=24G
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gg:g4:1
-#SBATCH --mail-type=END
-#SBATCH --mail-user=ophir.miller@mail.huji.ac.il
+
 
 set -euo pipefail
 mkdir -p slurm_out
