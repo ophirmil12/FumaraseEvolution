@@ -5,17 +5,13 @@
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=4
 
-#SBATCH --mail-type=END
-#SBATCH --mail-user=ophir.miller@mail.huji.ac.il
-
-#SBATCH --gres=gg:g4:1			# Phoenix
-# #SBATCH --gres=gpu:1
+#SBATCH --gres=gg:g4:1
 
 set -euo pipefail
 mkdir -p slurm_out
 
-PROJECT_ROOT="/sci/labs/itamarsi/ophirmil12/FumaraseEvolution"
-source /cs/labs/dina/ophirmil12/miniforge3/etc/profile.d/conda.sh
+PROJECT_ROOT="./FumaraseEvolution"
+source ./miniforge3/etc/profile.d/conda.sh
 conda activate project_env
 
 export HF_HOME="$PROJECT_ROOT/.hf_cache"
