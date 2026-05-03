@@ -4,8 +4,6 @@ from pathlib import Path
 #  Central Configuration
 # ============================================================
 
-# TODO: search all files for "TODO", then remove environment-specific settings
-#  e.g. paths (ophirmil12, dror...), mails, etc.
 
 # The root directory of the project
 ROOT = Path(__file__).parent
@@ -60,7 +58,7 @@ MMSEQS2 = {
 
 # --- Phylogeny (IQ-TREE) ---
 IQTREE = {
-    "model_selection":  "TEST",  # ModelFinder auto-selects best model     TODO: identify the specific model chosen by ModelFinder (e.g., LG+G4, JTT+I+G) for both the sequence-based and 3Di-based trees and update the text accordingly.
+    "model_selection":  "TEST",  # ModelFinder auto-selects best model, used: Q.pfam+R8
     "bootstraps":       1000,    # ultrafast bootstrap replicates
     "threads":          "AUTO",
     "gamma_categories": 4,       # +G4

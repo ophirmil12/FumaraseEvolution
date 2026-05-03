@@ -3,8 +3,8 @@
 12:15:17 [INFO]   class2_sequences.fasta: 17,183 unique proteome IDs
 12:15:17 [INFO] Class 1: 4,166 / 21,466 proteomes harbor this class
 12:15:17 [INFO] Class 2: 17,183 / 21,466 proteomes harbor this class
-12:15:18 [INFO] Table 1 → /sci/labs/itamarsi/ophirmil12/FumaraseEvolution/results/stats/table1_class1.csv
-12:15:18 [INFO] Table 2 → /sci/labs/itamarsi/ophirmil12/FumaraseEvolution/results/stats/table2_class2.csv
+12:15:18 [INFO] Table 1 → ./FumaraseEvolution/results/stats/table1_class1.csv
+12:15:18 [INFO] Table 2 → ./FumaraseEvolution/results/stats/table2_class2.csv
 
 Table 1 - Class I
     Taxonomic group  # Proteomes  # Harboring  % Harboring  % Lacking

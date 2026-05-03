@@ -6,16 +6,15 @@
 #SBATCH --time=12:00:00
 #SBATCH --mem=128G
 #SBATCH --cpus-per-task=8
-#SBATCH --mail-type=END
-#SBATCH --mail-user=ophir.miller@mail.huji.ac.il
+
 
 set -euo pipefail
 
 mkdir -p slurm_out
 
-PROJECT_ROOT="/sci/labs/itamarsi/ophirmil12/FumaraseEvolution"
+PROJECT_ROOT="./FumaraseEvolution"
 
-source /cs/labs/dina/ophirmil12/miniforge3/etc/profile.d/conda.sh
+source ./miniforge3/etc/profile.d/conda.sh
 conda activate project_env
 
 # --- Run class I ---

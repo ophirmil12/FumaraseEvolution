@@ -160,7 +160,7 @@ def build_table(metadata: pd.DataFrame,
             "# Proteomes":     total,
             "# Harboring":     harboring,
             "% Harboring":     pct_h,
-            "% Lacking":       pct_l,       # TODO: In the paper, we only report % harboring
+            "% Lacking":       pct_l,       # In the paper, we only report % harboring, as asked in review
         })
 
     df_out = pd.DataFrame(rows)
