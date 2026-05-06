@@ -1,53 +1,47 @@
 #!/bin/bash
-#SBATCH --job-name=data_extraction
-#SBATCH --out=/sci/labs/itamarsi/dror.jacobi/FumaraseEvolution/slurm_out/extracting_tree_data%j.out
-#SBATCH --time=10:00:00
-#SBATCH --mem=64
-#SBATCH --cpus-per-task=8
+#SBATCH --job-name=tree_data_extraction
+#SBATCH --out=slurm_out/extracting_tree_data%j.out
+#SBATCH --time=2:00:00
+#SBATCH --mem=12
+#SBATCH --cpus-per-task=2
 
-echo "SLURM script Starting on $(hostname) at $(date)..."
 
-#set -euo pipefail
-
-PROJECT_ROOT=/sci/labs/itamarsi/dror.jacobi/FumaraseEvolution
-cd $PROJECT_ROOT
-
-umask 003
-
+set -euo pipefail
 mkdir -p slurm_out
 
-source /sci/labs/itamarsi/dror.jacobi/miniforge3/etc/profile.d/conda.sh
-conda activate /sci/labs/itamarsi/dror.jacobi/miniforge3/envs/fumaraseevo
-
-echo "Starting script..."
-
-
-mkdir -p results/trees/tree_data
-
-#python scripts_backup/07_trees/extract_iqtree_data_final.py results/trees/class1/subtrees/class1_subtree1_ver2.treefile results/trees/class1/tree_data/class1_subtree1_ver2_summary.csv
-#python scripts_backup/07_trees/tree_stats_extended.py results/trees/class1/tree_data/class1_subtree1_ver2_summary.csv results/trees/class1/subtrees/class1_subtree1_ver2.iqtree
-
-#python scripts_backup/07_trees/extract_iqtree_data_final.py results/trees/class1/subtrees/class1_subtree2.treefile results/trees/class1/tree_data/class1_subtree2_summary.csv
-#python scripts_backup/07_trees/tree_stats_extended.py results/trees/class1/tree_data/class1_subtree2_summary.csv results/trees/class1/subtrees/class1_subtree2.iqtree
+PROJECT_ROOT="./FumaraseEvolution"
+source ./miniforge3/etc/profile.d/conda.sh
+conda activate project_env
 
 
-#python scripts_backup/07_trees/extract_iqtree_data_final.py results/trees/class2/subtrees/class2_subtree1_thinned_300.treefile results/trees/class2/tree_data/class2_subtree1_thinned_300_summary.csv
-#python scripts_backup/07_trees/tree_stats_extended.py results/trees/class2/tree_data/class2_subtree1_thinned_300_summary.csv results/trees/class2/subtrees/class2_subtree1_thinned_300.iqtree
+echo "Starting tree information extraction..."
+echo "Date: $(date)"
 
-python scripts_backup/07_trees/extract_iqtree_data_final.py results/trees/class2/subtrees/class2_subtree2A_ver3.treefile results/trees/class2/tree_data/class2_subtree2A_ver3_summary.csv
-python scripts_backup/07_trees/tree_stats_extended.py results/trees/class2/tree_data/class2_subtree2A_ver3_summary.csv results/trees/class2/subtrees/class2_subtree2A_ver3.iqtree
 
-#python scripts_backup/07_trees/extract_iqtree_data_final.py results/trees/class2/subtrees/class2_subtree2B.treefile results/trees/class2/tree_data/class2_subtree2B_summary.csv
-#python scripts_backup/07_trees/tree_stats_extended.py results/trees/class2/tree_data/class2_subtree2B_summary.csv results/trees/class2/subtrees/class2_subtree2B.iqtree
+echo
+mkdir -p "$PROJECT_ROOT/results/trees/tree_data"
 
-#python scripts_backup/07_trees/extract_iqtree_data_final.py results/trees/class2/subtrees/class2_subtree3.treefile results/trees/class2/tree_data/class2_subtree3_summary.csv
-#python scripts_backup/07_trees/tree_stats_extended.py results/trees/class2/tree_data/class2_subtree3_summary.csv results/trees/class2/subtrees/class2_subtree3.iqtree
+#Syntax: 
+#treefile processing:
 
-#python scripts_backup/07_trees/extract_iqtree_data_final.py results/trees/class2/subtrees/class2_subtree3_ver2.treefile results/trees/class2/tree_data/class2_subtree3_ver2_summary.csv
-#python scripts_backup/07_trees/tree_stats_extended.py results/trees/class2/tree_data/class2_subtree3_ver2_summary.csv results/trees/class2/subtrees/class2_subtree3_ver2.iqtree
+#python "$PROJECT_ROOT/scripts/07_trees/extract_iqtree_data_final.py" \
+#    <input treefile path>.treefile \
+#    <output summary file path>.csv
 
-#python scripts_backup/07_trees/extract_iqtree_data_final.py results/trees/class2/subtrees/class2_subtree4.treefile results/trees/class2/tree_data/class2_subtree4_summary.csv
-#python scripts_backup/07_trees/tree_stats_extended.py results/trees/class2/tree_data/class2_subtree4_summary.csv results/trees/class2/subtrees/class2_subtree4.iqtree
+#additional iqtree information scavanging:
+
+#python "$PROJECT_ROOT/scripts_backup/07_trees/tree_stats_extended.py" \
+#    <input summary file path>.csv \
+#    <iqtree logs file path>.iqtree
+
+python "$PROJECT_ROOT/scripts/07_trees/extract_iqtree_data_final.py" \
+  "$PROJECT_ROOT/results/trees/class1/subtrees/class1_subtree1_ver2.treefile" \
+  "$PROJECT_ROOT/results/trees/class1/tree_data/class1_subtree1_ver2_summary.csv" 
+
+python "$PROJECT_ROOT/scripts_backup/07_trees/tree_stats_extended.py" \
+  "$PROJECT_ROOT/results/trees/class1/tree_data/class1_subtree1_ver2_summary.csv" \
+  "$PROJECT_ROOT/results/trees/class1/subtrees/class1_subtree1_ver2.iqtree"
+
 
 
 echo "Extraction Script Finished at $(date)."
