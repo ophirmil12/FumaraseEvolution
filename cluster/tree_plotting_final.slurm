@@ -1,58 +1,36 @@
 #!/bin/bash
-#SBATCH --job-name=tree_plotting_class2_circular_only
-#SBATCH --out=/sci/labs/itamarsi/dror.jacobi/FumaraseEvolution/slurm_out/tree_plotting_class2_circ_only_%j.out
+#SBATCH --job-name=tree_plotting_class1
+#SBATCH --out=slurm_out/tree_plotting_class1_%j.out
 #SBATCH --cpus-per-task=8            
-#SBATCH --mem=64G
+#SBATCH --mem=32G
 #SBATCH --time=48:00:00    
 
-#set -euo pipefail
+echo "SLURM script Starting on $(hostname) at $(date)..."
 
-PROJECT_ROOT=/sci/labs/itamarsi/dror.jacobi/FumaraseEvolution
-cd $PROJECT_ROOT
-
-umask 003
-
+set -euo pipefail
 mkdir -p slurm_out
 
-source /sci/labs/itamarsi/dror.jacobi/miniforge3/etc/profile.d/conda.sh
-conda activate /sci/labs/itamarsi/dror.jacobi/miniforge3/envs/fumaraseevo
+PROJECT_ROOT="./FumaraseEvolution"
+source ./miniforge3/etc/profile.d/conda.sh
+conda activate project_env
 
-	
+RESULT="$PROJECT_ROOT/results"
+SCRIPT="$PROJECT_ROOT/scripts"
+DATA="$PROJECT_ROOT/data"
 
-
+echo "Starting iqtree script..."
 
 
 #unrooted trees
 
-# Rscript scripts_backup/08_plots/tree_plot_unrooted.R data/processed/proteome_metadata.tsv results/trees/class1/AA_clustered_2k.treefile results/figures/unrooted/unrooted_tree_class1_AA_2k_final.png
-
-# Rscript scripts_backup/08_plots/tree_plot_unrooted.R data/processed/proteome_metadata.tsv results/trees/class1/3di_clustered_2k_bb.treefile results/figures/unrooted/unrooted_tree_class1_3di_clustered_2k_bb_final.png
-
-# Rscript scripts_backup/08_plots/tree_plot_unrooted.R data/processed/proteome_metadata.tsv results/trees/class2/AA_clustered_qpfam_r8_fast.treefile results/figures/unrooted/unrooted_tree_class2_AA__clustered6k_R8_fast.png
-
-# Rscript scripts_backup/08_plots/tree_plot_unrooted.R data/processed/proteome_metadata.tsv results/trees/class2/AA_clustered2k_qpfam_r8.treefile results/figures/unrooted/unrooted_tree_class2_AA_clustered2k_R8_final.png
-
-# Rscript scripts_backup/08_plots/tree_plot_unrooted.R data/processed/proteome_metadata.tsv results/trees/class2/3di_clustered_2k_bb.treefile results/figures/unrooted/unrooted_tree_class2_3di_clustered_2k_bb_final.png
-
-# Rscript scripts_backup/08_plots/tree_plot_unrooted.R data/processed/proteome_metadata.tsv results/trees/class2/AA_clustered_clustered_qpfam_r8_2k_copy_it347_963.treefile
-results/figures/unrooted/unrooted_tree_class2_AA_clustered_qpfam_r8_2k_copy_it347_963.treefile.png
-
-# Rscript scripts_backup/08_plots/tree_plot_unrooted.R data/processed/proteome_metadata.tsv results/trees/class2/AA_clustered_qpfam_r8_assisted_copy_it190_956.treefile results/figures/unrooted/unrooted_tree_class2_AA_clustered_qpfam_r8_assisted_copy_it190_956.png
+Rscript "$SCRIPT/08_plots/tree_plot_unrooted.R" \
+		"$DATA/processed/proteome_metadata.tsv" \
+		"$RESULT/trees/class1/AA_clustered_2k.treefile" \
+		"$RESULT/figures/unrooted/unrooted_tree_class1_AA_2k_final.png"
 
 
 #circular trees
-
-# Rscript scripts_backup/08_plots/tree_plot_circular.R data/processed/proteome_metadata.tsv results/trees/class1/AA_clustered_2k.treefile results/figures/circular/circular_tree_class1_AA_clustered_2k_final.png
-
-# Rscript scripts_backup/08_plots/tree_plot_circular.R data/processed/proteome_metadata.tsv results/trees/class1/3di_clustered_2k_bb.treefile results/figures/circular/circular_tree_class1_3di_clustered_2k_bb_final.png
-
-Rscript scripts_backup/08_plots/tree_plot_circular.R data/processed/proteome_metadata.tsv results/trees/class2/AA_clustered2k_qpfam_r8.treefile results/figures/circular/circular_tree_class2_AA_clustered2k_R8_final.png
-
-# Rscript scripts_backup/08_plots/tree_plot_circular.R data/processed/proteome_metadata.tsv results/trees/class2/AA_clustered2k_qpfam_r8_fast.treefile results/figures/circular/circular_tree_class2_AA_clustered2k_R8_fast.png
-
-# Rscript scripts_backup/08_plots/tree_plot_circular.R data/processed/proteome_metadata.tsv results/trees/class2/3di_clustered_2k_bb.treefile results/figures/circular/circular_tree_class2_3di_clustered_2k_bb_final.png
-
-# Rscript scripts_backup/08_plots/tree_plot_circular.R data/processed/proteome_metadata.tsv results/trees/class2/AA_clustered_clustered_qpfam_r8_2k_copy_it347_963.treefile
-results/figures/circular/circular_tree_class2_AA_clustered_qpfam_r8_2k_copy_it347_963.png
-
-# Rscript scripts_backup/08_plots/tree_plot_circular.R data/processed/proteome_metadata.tsv results/trees/class2/AA_clustered_qpfam_r8_assisted_copy_it190_956.treefile results/figures/circular/circular_tree_class2_AA_clustered_qpfam_r8_assisted_copy_it190_956.png
+Rscript "$SCRIPT/08_plots/tree_plot_circular.R" \
+		"$DATA/processed/proteome_metadata.tsv" \
+		"$RESULT/trees/class1/AA_clustered_2k.treefile" \
+		"$RESULT/figures/circular/circular_tree_class1_AA_clustered_2k_final.png"
