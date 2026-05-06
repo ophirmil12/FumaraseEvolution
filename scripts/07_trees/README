@@ -13,8 +13,6 @@ This directory contains the pipeline for generating phylogenetic trees for Class
 
 ## Tree Generation
 
-
-
 Trees where generated via the IQTree CLI.
 The regular amino acid based trees were made using the Q.pfam model, after it was found best fitting during earlier generation rounds,
 with the following commands:
@@ -45,10 +43,20 @@ iqtree -s results/alignments/class2_3di_clustered_aligned.fasta \
 
 3. Sample trees:
 
+Sample tree's fasta created using the super_subset.py program via:
+
+python scripts/07_trees/super_subset.py \
+	data/processed/subsets/class2_subtree4.txt \
+	data/processed/proteome_metadata.tsv \
+	resula/alignments/class2_aligned.bak.fasta \
+	result/alignments/subset_alignments/class2_aligned_subtree4.fasta \
+	data/processed/subsets/csv/class2_subtree4.csv"
+
+then trees ran using a variation of:
+
 iqtree -s results/alignments/subset_alignments/class2_aligned_subtree4.fasta \
      --prefix results/trees/class2/subtrees/class2_subtree4 \
      -mem 64G -ntmax 6 -nt AUTO -mset Q.pfam -bb 1000 -alrt 1000
-
 
 ## Run - plot trees
 
@@ -65,4 +73,18 @@ Rscript scripts/08_plots/tree_plot_circular.R \
 		data/processed/proteome_metadata.tsv \
     results/trees/class1/AA_clustered_2k.treefile \
 		results/figures/circular/circular_tree_class1_AA_clustered_2k_final.png
+
+
+## Tree data extraction:
+
+using the extract_iqtree_data.final.py for extracting information from the tree file,
+and the tree_stats_extended.py to extract and add adition information from the iqtree file:
+
+python /scripts/07_trees/extract_iqtree_data_final.py \
+    /results/trees/class1/subtrees/class1_subtree1_ver2.treefile \
+    /results/trees/class1/tree_data/class1_subtree1_ver2_summary.csv
+
+python /scripts/07_trees/tree_stats_extended.py \
+    /results/trees/class1/tree_data/class1_subtree1_ver2_summary.csv \
+    /results/trees/class1/subtrees/class1_subtree1_ver2.iqtree
 

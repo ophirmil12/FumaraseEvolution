@@ -38,7 +38,7 @@ python "$PROJECT_ROOT/scripts/07_trees/extract_iqtree_data_final.py" \
   "$PROJECT_ROOT/results/trees/class1/subtrees/class1_subtree1_ver2.treefile" \
   "$PROJECT_ROOT/results/trees/class1/tree_data/class1_subtree1_ver2_summary.csv" 
 
-python "$PROJECT_ROOT/scripts_backup/07_trees/tree_stats_extended.py" \
+python "$PROJECT_ROOT/scripts/07_trees/tree_stats_extended.py" \
   "$PROJECT_ROOT/results/trees/class1/tree_data/class1_subtree1_ver2_summary.csv" \
   "$PROJECT_ROOT/results/trees/class1/subtrees/class1_subtree1_ver2.iqtree"
 
