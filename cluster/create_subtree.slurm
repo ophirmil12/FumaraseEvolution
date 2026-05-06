@@ -29,7 +29,7 @@ echo "Starting script..."
 echo "creating alignment subset file..."
 #for syntax, see super_subset.py file in scripts.
 
-python "$SCRIPTS/08_plots/super_subset.py" \
+python "$SCRIPTS/07_trees/super_subset.py" \
 	"$DATA/processed/subsets/class2_subtree3B.txt" \
 	"$DATA/processed/proteome_metadata.tsv" \
 	"$RESULT/alignments/class2_aligned.bak.fasta" \
