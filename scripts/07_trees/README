@@ -4,28 +4,65 @@ This directory contains the pipeline for generating phylogenetic trees for Class
 
 ## Data
 
-- 'results/alignments/class1_aligned.fasta'
-- 'results/alignments/class2_aligned.fasta'
+- 'results/alignments/class1_aa_clustered_aligned.fasta'
+- 'results/alignments/class2_aa_clustered_aligned.fasta'
 
-- 'data/processed/class1_3di_aligned.fasta'
-- 'data/processed/class2_3di_aligned.fasta'
+- 'data/processed/class1_3di_clustered_aligned.fasta'
+- 'data/processed/class2_3di_clustered_aligned.fasta'
 
 
 ## Tree Generation
 
-Trees where generated via the IQTree CLI with the following command:
+
+
+Trees where generated via the IQTree CLI.
+The regular amino acid based trees were made using the Q.pfam model, after it was found best fitting during earlier generation rounds,
+with the following commands:
 
 1. Full trees (AA):
 
-TODO
+iqtree -s results/alignments/class1_aa_clustered_aligned.fasta \
+    --prefix results/trees/class1/AA_clustered_2k \
+    -mem 128G -nt AUTO -ntmax 12 -bb 1000 -nm 2000 -m Q.pfam
+    
+iqtree -s results/alignments/class2_aa_clustered_aligned_80.fasta \
+    --prefix results/trees/class2/AA_clustered2k_qpfam_r8 \
+    -mem 128G -ntmax 12 -nt AUTO -m Q.pfam+R8 -bb 1000 -m Q.pfam+R8
 
 2. Full trees (3Di):
 
-TODO
+iqtree -s results/alignments/class1_3di_clustered_aligned.fasta \
+    --prefix results/trees/class1/3di_clustered \
+    -bb 1000 -st AA -mem 128G \
+    -m data/external/Q.3Di.LLM.m+G4 \
+    -nt AUTO -ntmax 10 -nm 2000
+
+iqtree -s results/alignments/class2_3di_clustered_aligned.fasta \
+    --prefix results/trees/class2/3di_clustered \
+    -bb 1000 -st AA -mem 128G \
+    -m data/external/Q.3Di.LLM.m+G4 \
+    -nt AUTO -ntmax 10 -nm 2000
 
 3. Sample trees:
 
-TODO
+iqtree -s results/alignments/subset_alignments/class2_aligned_subtree4.fasta \
+     --prefix results/trees/class2/subtrees/class2_subtree4 \
+     -mem 64G -ntmax 6 -nt AUTO -mset Q.pfam -bb 1000 -alrt 1000
+
 
 ## Run - plot trees
-TODO
+
+Unrooted Trees:
+
+Rscript scripts/08_plots/tree_plot_unrooted.R \
+		data/processed/proteome_metadata.tsv \
+		results/trees/class1/AA_clustered_2k.treefile \
+		results/figures/unrooted/unrooted_tree_class1_AA_2k_final.png
+    
+Circular Trees:
+
+Rscript scripts/08_plots/tree_plot_circular.R \
+		data/processed/proteome_metadata.tsv \
+    results/trees/class1/AA_clustered_2k.treefile \
+		results/figures/circular/circular_tree_class1_AA_clustered_2k_final.png
+
