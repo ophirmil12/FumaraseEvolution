@@ -6,8 +6,6 @@
 #SBATCH --time=01:00:00
 #SBATCH --mem=32G
 #SBATCH --cpus-per-task=16
-#SBATCH --mail-type=END
-#SBATCH --mail-user=ophir.miller@mail.huji.ac.il
 
 set -euo pipefail
 mkdir -p slurm_out
